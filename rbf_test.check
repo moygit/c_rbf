@@ -1,6 +1,7 @@
 #include "rbf.h"
+#include "_rbf_train.h"
 
 #test rbf_test
     fail_unless(3 == 3, "3 is no longer 3!");
     fail_unless(4 == 4, "4 is no longer 4!");
-    fail_unless(test(), "test() is false!");
+    fail_unless(test_get_feature_frequencies(), "get_feeature_frequencies failure");

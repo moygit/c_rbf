@@ -7,6 +7,14 @@ typedef _Bool bool;
 
 bool test();
 
+#define NUM_TREES 20
+// #define TREE_SIZE (1 << 25)     // 2^25, roughly 32M
+#define LEAF_SIZE 8
+#define NUM_BITS 32  // we want to store some shorts but also some ints, so need 4 bytes
+#define HIGH_BIT 31  // low bit is 0, high bit is 15
+#define HIGH_BIT_1 (1 << HIGH_BIT)
+#define NUM_CHARS 256
+
 typedef struct {
     uint *row_index;
     int num_rows;

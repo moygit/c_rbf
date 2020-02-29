@@ -6,7 +6,7 @@ TEST_LIBS=-lcheck -lrbf
 all: basic_py_test wrapped_py_test c_test
 
 clean:
-	rm -f *.o *.so *.html *_test.c c_test
+	rm -f *.o *.so *.html *_test_aux.c c_test
 
 # Main:
 
@@ -30,9 +30,9 @@ wrapped_py_test: librbf.so
 
 # C tests:
 
-rbf_test.c: rbf_test.check
+rbf_test_aux.c: rbf_test.check
 	checkmk $^ >$@
 
-c_test: rbf_test.c librbf.so
+c_test: rbf_test.c rbf_test_aux.c librbf.so
 	gcc $^ $(TEST_LIB_DIRS) $(TEST_LIBS) -o $@
 	LD_LIBRARY_PATH=${LD_LIBRATH_PATH}:. ./$@
