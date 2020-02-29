@@ -1,0 +1,5 @@
+#include "rbf.h"
+
+#test move_point_test
+    fail_unless(3 == 3, "3 is no longer 3!");
+    fail_unless(4 == 4, "4 is no longer 4!");
