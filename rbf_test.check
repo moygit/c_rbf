@@ -9,3 +9,4 @@
     fail_unless(test_split_one_feature(), "split_one_feature failure");
     fail_unless(test_get_simple_best_feature(), "get_simple_best_feature failure");
     fail_unless(test_quick_partition(), "quick_partition failure");
+    fail_unless(test_transpose(), "transpose failure");

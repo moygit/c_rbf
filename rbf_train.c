@@ -259,6 +259,49 @@ void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array,
 }
 
 
+RandomBinaryTree *create_rbt(rownum_t num_rows, treeindex_t tree_size) {
+    // TODO: deal with NULLs here (but there's no intelligent way to recover, so maybe just fail)
+    RandomBinaryTree *tree = (RandomBinaryTree *) malloc(sizeof(RandomBinaryTree));
+
+    tree->row_index = (rownum_t *) malloc(sizeof(rownum_t) * num_rows);
+    for (rownum_t i = 0; i < num_rows; i++) {
+        tree->row_index[i] = i;
+    }
+    tree->num_rows = num_rows;
+
+    tree->tree_first = (rownum_t *) calloc(sizeof(rownum_t), (size_t) tree_size);
+    tree->tree_second = (rownum_t *) calloc(sizeof(rownum_t), (size_t) tree_size);
+    tree->tree_size = tree_size;
+
+    tree->num_internal_nodes = 0;
+    tree->num_leaves = 0;
+    return tree;
+}
+
+
+RandomBinaryTree *train_one_tree(size_t i, feature_t *feature_array,
+        rownum_t num_rows, colnum_t num_features, colnum_t num_features_to_compare,
+        size_t leaf_size, size_t tree_depth) {
+    treeindex_t tree_size = 1 << tree_depth;
+    RandomBinaryTree *tree = create_rbt(num_rows, tree_size);
+    //print_time("starting tree");
+    calculate_one_node(tree, feature_array, leaf_size, num_features, num_features_to_compare, 0, num_rows, 0, 0);
+    //print_time("finished tree");
+    return tree;
+}
+
+
+feature_t *transpose(feature_t *input, size_t rows, size_t cols) {
+    feature_t *output = (feature_t *) malloc(sizeof(feature_t) * rows * cols);
+    for (size_t i = 0; i < rows; i++) {
+        for (size_t j = 0; j < cols; j++) {
+            output[j * rows + i] = input[i * cols + j];
+        }
+    }
+    return output;
+}
+
+
 /* display a Point value */
 void show_point(Point point) {
     printf("Point in C      is (%d, %d)\n", point.x, point.y);

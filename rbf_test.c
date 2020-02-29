@@ -171,3 +171,18 @@ bool test_quick_partition() {
 
     return test1_passed && test2_passed && test3_passed && test4_passed;
 }
+
+
+bool test_transpose() {
+    feature_t input[] = {1, 2, 3,  // thinking of this as a matrix with 2 rows, 3 cols
+                         4, 5, 6};
+    feature_t *output = transpose(input, 2, 3);
+    feature_t exp_transpose[] = {1, 4,
+                                 2, 5,
+                                 3, 6};
+    bool compare = 1;
+    for (size_t i = 0; i < 6; i++) {
+        compare = compare && (output[i] == exp_transpose[i]);
+    }
+    return compare;
+}
