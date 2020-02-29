@@ -28,3 +28,4 @@ bool test_split_one_feature();
 bool test_get_simple_best_feature();
 bool test_quick_partition();
 bool test_transpose();
+void print_time(char *msg);

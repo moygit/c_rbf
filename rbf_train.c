@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+
 #include "rbf.h"
 #include "_rbf_train.h"
 
@@ -284,9 +286,9 @@ RandomBinaryTree *train_one_tree(size_t i, feature_t *feature_array,
         size_t leaf_size, size_t tree_depth) {
     treeindex_t tree_size = 1 << tree_depth;
     RandomBinaryTree *tree = create_rbt(num_rows, tree_size);
-    //print_time("starting tree");
+    print_time("starting tree");
     calculate_one_node(tree, feature_array, leaf_size, num_features, num_features_to_compare, 0, num_rows, 0, 0);
-    //print_time("finished tree");
+    print_time("finished tree");
     return tree;
 }
 
@@ -299,6 +301,17 @@ feature_t *transpose(feature_t *input, size_t rows, size_t cols) {
         }
     }
     return output;
+}
+
+
+RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, size_t num_trees, size_t tree_depth, size_t leaf_size,
+                                                   rownum_t num_rows, colnum_t num_features, colnum_t num_features_to_compare) {
+    RandomBinaryTree **forest = (RandomBinaryTree **) malloc(sizeof(void *) * num_trees);
+    #pragma omp parallel for
+    for (size_t i = 0; i < num_trees; i++) {
+        forest[i] = train_one_tree(i, feature_array, num_rows, num_features, num_features_to_compare, leaf_size, tree_depth);
+    }
+    return forest;
 }
 
 
@@ -331,4 +344,19 @@ Point get_point(void) {
     Point point = {x, y};
     printf("Returning Point    (%d, %d)\n", point.x, point.y);
     return point;
+}
+
+
+char buffer[26];
+void print_time(char *msg) {
+    //time_t my_time = time(NULL);
+    //strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", localtime(&my_time));
+    //printf("%s: %s\n", buffer, msg);
+
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    double count;
+    count = t.tv_sec * 1e9;
+    count = (count + t.tv_nsec) * 1e-9;
+    printf("%f: %s\n", count, msg);
 }

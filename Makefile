@@ -12,7 +12,7 @@ clean:
 # Main:
 
 %.o: %.c
-	gcc -c -Wall -Werror -fpic $^
+	gcc -c -Wall -Werror -fpic -fopenmp $^
 
 librbf.so: rbf_train.o rbf_io.o rbf_query.o
 	gcc -shared $^ -o $@
@@ -35,5 +35,5 @@ rbf_test_aux.c: rbf_test.check
 	checkmk $^ >$@
 
 c_test: rbf_test.c rbf_test_aux.c librbf.so
-	gcc $^ $(TEST_LIB_DIRS) $(TEST_LIBS) -o $@
+	gcc -fopenmp $^ $(TEST_LIB_DIRS) $(TEST_LIBS) -o $@
 	LD_LIBRARY_PATH=${LD_LIBRATH_PATH}:. ./$@
