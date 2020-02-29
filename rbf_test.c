@@ -117,3 +117,57 @@ bool test_get_simple_best_feature() {
     return (best_feature_num == exp_best_feature_num)
             && (best_feature_split_value == exp_split_value);
 }
+
+
+bool _test_qp(rownum_t *row_index, size_t ri_size, feature_t *feature_array, feature_t split_value,
+        rownum_t *exp_row_index, size_t exp_ri_size, feature_t exp_split, rownum_t index_end) {
+    colnum_t num_cols = 1, feature_num = 0;
+    rownum_t index_start = 0;
+    rownum_t split = quick_partition(row_index, feature_array, num_cols, index_start, index_end, feature_num, split_value);
+    return(_test_array_equals(row_index, ri_size, exp_row_index, exp_ri_size) && (split == exp_split));
+}
+
+bool test_quick_partition() {
+    // setup boilerplate (only 1 feature, we'll sort a 6-length array):
+    rownum_t index_end = 6;
+
+    // given a reverse-sorted list:
+    rownum_t local_row_index_1[6] = {0, 1, 2, 3, 4, 5};
+    feature_t local_feature_array_1[6] = {15, 14, 13, 12, 11, 10};
+    // when we split at 12.5 (the median):
+    feature_t split_value = 12;
+    // then we split at position 3 to get feature order [10, 11, 12   |   13, 14, 15]
+    feature_t exp_split = 3;
+    rownum_t exp_row_index_1[6] = {5, 4, 3, 2, 1, 0};
+    bool test1_passed = _test_qp(local_row_index_1, 6, local_feature_array_1, split_value, exp_row_index_1, 6, exp_split, index_end);
+  
+    // given a particular (random) order:
+    rownum_t local_row_index_2[6] = {0, 1, 2, 3, 4, 5};
+    feature_t local_feature_array_2[6] = {11, 10, 14, 12, 15, 13};
+    // when we split at 12.5 (the median):
+    split_value = 12;
+    // then we split at position 3 to get feature order [11, 10, 12   |   14, 15, 13]
+    exp_split = 3;
+    rownum_t exp_row_index_2[6] = {0, 1, 3, 2, 4, 5};
+    bool test2_passed = _test_qp(local_row_index_2, 6, local_feature_array_2, split_value, exp_row_index_2, 6, exp_split, index_end);
+  
+    // given a particular (random) order:
+    rownum_t local_row_index_3[6] = {0, 1, 2, 3, 4, 5};
+    feature_t local_feature_array_3[6] = {11, 10, 14, 12, 15, 13};
+    // when split-value is less than all the values in the array
+    split_value = 2;
+    // then there's no split
+    exp_split = 0;
+    rownum_t exp_row_index_3[6] = {0, 1, 2, 3, 4, 5};   // and nothing gets moved
+    bool test3_passed = _test_qp(local_row_index_3, 6, local_feature_array_3, split_value, exp_row_index_3, 6, exp_split, index_end);
+
+    // given empty lists of rows and features:
+    rownum_t local_row_index_4[0] = {};
+    feature_t local_feature_array_4[0] = {};
+    // "Dude, there's nothing to split here!"
+    exp_split = 0;
+    rownum_t exp_row_index_4[0] = {};
+    bool test4_passed = _test_qp(local_row_index_4, 0, local_feature_array_4, split_value, exp_row_index_4, 0, exp_split, 0);
+
+    return test1_passed && test2_passed && test3_passed && test4_passed;
+}

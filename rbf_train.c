@@ -153,6 +153,33 @@ void get_simple_best_feature(stats_t *feature_frequencies,
 }
 
 
+// quicksort-type partitioning of row_index[index_start..index_end] based on whether the
+// feature `feature_num` is less-than or greater-than-or-equal-to split_value
+rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_array,
+        colnum_t num_features, rownum_t index_start, rownum_t index_end, colnum_t feature_num, feature_t split_value) {
+    if (index_end <= index_start) {
+        return index_start;
+    }
+
+    rownum_t i = index_start, j = index_end - 1;
+    while (i < j) {
+        while ((i < index_end) && (local_feature_array[local_row_index[i] * num_features + feature_num] <= split_value)) {
+            i += 1;
+        }
+        while ((j >= index_start) && (local_feature_array[local_row_index[j] * num_features + feature_num] > split_value)) {
+            j -= 1;
+        }
+        if (i >= j) {
+            return i;
+        }
+        rownum_t tmp = local_row_index[i];
+        local_row_index[i] = local_row_index[j];
+        local_row_index[j] = tmp;
+    }
+    return index_start;  // should never get here
+}
+
+
 /* display a Point value */
 void show_point(Point point) {
     printf("Point in C      is (%d, %d)\n", point.x, point.y);

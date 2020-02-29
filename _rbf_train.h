@@ -17,7 +17,11 @@ void get_simple_best_feature(stats_t *feature_frequencies,
         // returns:
         colnum_t *best_feature_num, feature_t *best_feature_split_value);
 
+rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_array,
+        colnum_t num_features, rownum_t index_start, rownum_t index_end, colnum_t feature_num, feature_t split_value);
+
 bool test_get_feature_frequencies();
 bool test_select_random_features_and_get_frequencies();
 bool test_split_one_feature();
 bool test_get_simple_best_feature();
+bool test_quick_partition();
