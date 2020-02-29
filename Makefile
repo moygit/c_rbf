@@ -33,6 +33,6 @@ wrapped_py_test: librbf.so
 rbf_test.c: rbf_test.check
 	checkmk $^ >$@
 
-c_test: rbf_test.c
+c_test: rbf_test.c librbf.so
 	gcc $^ $(TEST_LIB_DIRS) $(TEST_LIBS) -o $@
 	LD_LIBRARY_PATH=${LD_LIBRATH_PATH}:. ./$@
