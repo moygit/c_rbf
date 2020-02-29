@@ -5,9 +5,9 @@
 
 typedef _Bool bool;
 typedef char feature_t;
-typedef int rownum_t;
-typedef int colnum_t;
-typedef int stats_t;
+typedef uint rownum_t;
+typedef uint colnum_t;
+typedef uint stats_t;
 typedef size_t treeindex_t;
 
 bool test();

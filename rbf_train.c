@@ -166,7 +166,7 @@ rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_arr
         while ((i < index_end) && (local_feature_array[local_row_index[i] * num_features + feature_num] <= split_value)) {
             i += 1;
         }
-        while ((j >= index_start) && (local_feature_array[local_row_index[j] * num_features + feature_num] > split_value)) {
+        while ((j >= index_start) && (local_feature_array[local_row_index[j] * num_features + feature_num] > split_value) && (j > 0)) {
             j -= 1;
         }
         if (i >= j) {
