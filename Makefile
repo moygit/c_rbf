@@ -3,7 +3,8 @@ TEST_LIBS=-lcheck -lrbf
 
 # Housekeeping:
 
-all: basic_py_test wrapped_py_test c_test
+# all: basic_py_test wrapped_py_test c_test
+all: c_test
 
 clean:
 	rm -f *.o *.so *.html *_test_aux.c c_test

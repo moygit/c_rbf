@@ -4,13 +4,13 @@
 #include "_rbf_train.h"
 
 
-void get_feature_frequencies(uint *local_row_index, char local_feature_array[],
-       int feature_num, int num_features, int index_start, int index_end,
+void get_feature_frequencies(rownum_t *local_row_index, feature_t local_feature_array[],
+       colnum_t feature_num, colnum_t num_features, rownum_t index_start, rownum_t index_end,
        // returns:
-       uint *ret_counts, uint *ret_weighted_total) {
+       stats_t *ret_counts, stats_t *ret_weighted_total) {
     // get frequencies:
-    for (int rownum = index_start; rownum < index_end; rownum++) {
-        char feature_value = local_feature_array[local_row_index[rownum] * num_features + feature_num];
+    for (rownum_t rownum = index_start; rownum < index_end; rownum++) {
+        feature_t feature_value = local_feature_array[local_row_index[rownum] * num_features + feature_num];
         ret_counts[(size_t) feature_value] += 1;
         ret_weighted_total[0] += feature_value;
     }

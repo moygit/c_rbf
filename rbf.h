@@ -4,6 +4,11 @@
 #include <stdlib.h>
 
 typedef _Bool bool;
+typedef char feature_t;
+typedef int rownum_t;
+typedef int colnum_t;
+typedef int stats_t;
+typedef size_t treeindex_t;
 
 bool test();
 
@@ -16,16 +21,31 @@ bool test();
 #define NUM_CHARS 256
 
 typedef struct {
-    uint *row_index;
-    int num_rows;
-    int *tree_first;
-    int *tree_second;
-    int tree_size;
-    int num_internal_nodes;
-    int num_leaves;
+	// We have arrays of arrays of features. Instead of expensively moving those rows around when
+	// sorting and partitioning we have an index into those and move the index elements around.
+	// Lookups will be slightly slower but we'll save time overall.
+    rownum_t *row_index;
+    rownum_t num_rows;
+
+	// Ugliness alert:
+	// Each tree node is a pair. For speed and space efficiency we'll store the tree in 2 arrays
+	// using the standard trick for storing a binary tree in an array (with indexing starting at 0,
+	// left child of n goes in 2n+1, right child goes in 2n+2). The pairs are either:
+	// - if it's an internal node: the feature number and the value at which to split the feature
+	// - if it's a leaf node: start and end indices in the rowIndex array; that view in the rowIndex
+	//   array tells us the indices of rows in the original training set that are in this leaf
+	// We distinguish the two cases by doing some bit-arithmetic.
+	// 1. Yes, I know this is ugly, but the alternative is to have a whole 'nother pair of large arrays.
+	// 2. Yes, I considered using hashmaps instead [in Go], but they're much slower (expected) and also
+	//    take WAY more memory (which surprised me).
+    rownum_t *tree_first;
+    rownum_t *tree_second;
+    treeindex_t tree_size;
+    treeindex_t num_internal_nodes;
+    treeindex_t num_leaves;
 } RandomBinaryTree;
 
-RandomBinaryTree **train_forest_with_feature_array(char *feature_array, size_t num_trees, int tree_depth, int leaf_size,
+RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, size_t num_trees, int tree_depth, int leaf_size,
                                                    int num_rows, int num_features, int num_features_to_compare);
 
 void query_forest(RandomBinaryTree *forest, int num_trees,
