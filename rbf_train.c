@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include "rbf.h"
 
+
+_Bool test() {
+    return 1;
+}
+
+
 /* display a Point value */
 void show_point(Point point) {
     printf("Point in C      is (%d, %d)\n", point.x, point.y);
