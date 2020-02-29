@@ -45,8 +45,16 @@ typedef struct {
     treeindex_t num_leaves;
 } RandomBinaryTree;
 
-RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, size_t num_trees, size_t tree_depth, size_t leaf_size,
-                                                   rownum_t num_rows, colnum_t num_features, colnum_t num_features_to_compare);
+typedef struct {
+    size_t num_trees;
+    size_t tree_depth;
+    size_t leaf_size;
+    rownum_t num_rows;
+    colnum_t num_features;
+    colnum_t num_features_to_compare;
+} rbf_config_t;
+
+RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, rbf_config_t *config);
 
 void query_forest(RandomBinaryTree *forest, int num_trees,
         // returns:

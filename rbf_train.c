@@ -60,19 +60,19 @@ void get_feature_frequencies(rownum_t *local_row_index, feature_t local_feature_
 
 // Select a random subset of features and get the frequencies for those features.
 void select_random_features_and_get_frequencies(rownum_t *row_index, feature_t *feature_array,
-        colnum_t num_features, colnum_t num_features_to_compare, rownum_t index_start, rownum_t index_end,
+        rbf_config_t *cfg, rownum_t index_start, rownum_t index_end,
         // returns:
         colnum_t *ret_feature_subset, stats_t *ret_feature_frequencies, stats_t *ret_feature_weighted_totals) {
-    bool *features_already_selected = (bool *) calloc(sizeof(bool), num_features);
-    for (colnum_t i = 0; i < num_features_to_compare; i++) {
-        colnum_t feature_num = rand() % num_features;
+    bool *features_already_selected = (bool *) calloc(sizeof(bool), cfg->num_features);
+    for (colnum_t i = 0; i < cfg->num_features_to_compare; i++) {
+        colnum_t feature_num = rand() % cfg->num_features;
         while (features_already_selected[(size_t) feature_num]) {
-            feature_num = rand() % num_features;
+            feature_num = rand() % cfg->num_features;
         }
         features_already_selected[feature_num] = 1;
         ret_feature_subset[i] = feature_num;
         get_feature_frequencies(row_index, feature_array,
-                                feature_num, num_features, index_start, index_end,
+                                feature_num, cfg->num_features, index_start, index_end,
                                 &(ret_feature_frequencies[i * NUM_CHARS]), &(ret_feature_weighted_totals[i]));
     }
     free(features_already_selected);
@@ -184,23 +184,23 @@ rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_arr
 
 // Get a random subset of features, find the best one of those features,
 // and split this set of nodes on that feature.
-void _split_node(rownum_t *row_index, feature_t *feature_array,
-        colnum_t num_features, colnum_t num_features_to_compare, rownum_t index_start, rownum_t index_end,
+void _split_node(rownum_t *row_index, feature_t *feature_array, rbf_config_t *cfg,
+        rownum_t index_start, rownum_t index_end,
         // returns:
         colnum_t *best_feature_num, feature_t *best_feature_split_value, rownum_t *split_pos) {
-    colnum_t *feature_subset = (colnum_t *) calloc(sizeof(colnum_t), num_features_to_compare);
-    stats_t *feature_frequencies = (stats_t *) calloc(sizeof(stats_t), num_features_to_compare * NUM_CHARS);
-    stats_t *weighted_totals = (stats_t *) calloc(sizeof(stats_t), num_features_to_compare);
+    colnum_t *feature_subset = (colnum_t *) calloc(sizeof(colnum_t), cfg->num_features_to_compare);
+    stats_t *feature_frequencies = (stats_t *) calloc(sizeof(stats_t), cfg->num_features_to_compare * NUM_CHARS);
+    stats_t *weighted_totals = (stats_t *) calloc(sizeof(stats_t), cfg->num_features_to_compare);
     colnum_t _best_feature_index;
 
     select_random_features_and_get_frequencies(row_index, feature_array,
-            num_features, num_features_to_compare, index_start, index_end,
+            cfg, index_start, index_end,
             feature_subset, feature_frequencies, weighted_totals);
-    get_simple_best_feature(feature_frequencies, num_features_to_compare, weighted_totals, index_end - index_start,
+    get_simple_best_feature(feature_frequencies, cfg->num_features_to_compare, weighted_totals, index_end - index_start,
             &_best_feature_index, best_feature_split_value);
     *best_feature_num = feature_subset[_best_feature_index];
     // return values:
-    *split_pos = quick_partition(row_index, feature_array, num_features, index_start, index_end, *best_feature_num, *best_feature_split_value);
+    *split_pos = quick_partition(row_index, feature_array, cfg->num_features, index_start, index_end, *best_feature_num, *best_feature_split_value);
     free(feature_subset);
     free(feature_frequencies);
     free(weighted_totals);
@@ -215,6 +215,7 @@ void _split_node(rownum_t *row_index, feature_t *feature_array,
 // - feature array
 // - leaf size, total number of features, and number of features to compare
 //   (not adding these to the tree struct b/c they're only needed at training time)
+// - num_rows: number of rows in the feature-array and in the tree's row_index
 // - index_start and index_end: the view into row_index that we're considering right now
 // - tree_array_pos: the position of this node in the tree arrays
 // - TODO: REMOVE depth of this node in the tree
@@ -222,8 +223,7 @@ void _split_node(rownum_t *row_index, feature_t *feature_array,
 // - Parallel calls to `calculate_one_node` will look at non-intersecting views.
 // - Child calls will look at distinct sub-views of this view.
 // - No two calls to `calculate_one_node` will have the same tree_array_pos
-void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array,
-        size_t leaf_size, colnum_t num_features, colnum_t num_features_to_compare,
+void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array, rbf_config_t *config,
         rownum_t index_start, rownum_t index_end, treeindex_t tree_array_pos, size_t depth) {
     if (2 * tree_array_pos + 2 >= tree->tree_size) {
     // Special termination condition to regulate depth.
@@ -234,7 +234,7 @@ void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array,
         return;
     }
 
-    if (index_end - index_start < leaf_size) {
+    if (index_end - index_start < config->leaf_size) {
     // Not enough items left to split. Make a leaf.
         tree->tree_first[tree_array_pos] = HIGH_BIT_1 ^ index_start;
         tree->tree_second[tree_array_pos] = HIGH_BIT_1 ^ index_end;
@@ -247,7 +247,7 @@ void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array,
         colnum_t best_feature_num;
         feature_t best_feature_split_value;
         rownum_t index_split;
-        _split_node(tree->row_index, feature_array, num_features, num_features_to_compare, index_start, index_end,
+        _split_node(tree->row_index, feature_array, config, index_start, index_end,
                     &best_feature_num, &best_feature_split_value, &index_split);
 
         tree->tree_first[tree_array_pos] = best_feature_num;
@@ -255,21 +255,22 @@ void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array,
 // fmt.Fprintf(tree_statsFile, "%d,%d,internal,%d,%d,%d,%d,%d,%d,%s\n", tree_array_pos, depth, index_start, index_end,
 //        index_end - index_start, index_split, featureNum, featureSplitValue, features.CHAR_REVERSE_MAP[featureNum])
         tree->num_internal_nodes += 1;
-        calculate_one_node(tree, feature_array, leaf_size, num_features, num_features_to_compare, index_start, index_split, (2*tree_array_pos)+1, depth+1);
-        calculate_one_node(tree, feature_array, leaf_size, num_features, num_features_to_compare, index_split, index_end, (2*tree_array_pos)+2, depth+1);
+        calculate_one_node(tree, feature_array, config, index_start, index_split, (2*tree_array_pos)+1, depth+1);
+        calculate_one_node(tree, feature_array, config, index_split, index_end, (2*tree_array_pos)+2, depth+1);
     }
 }
 
 
-RandomBinaryTree *create_rbt(rownum_t num_rows, treeindex_t tree_size) {
+RandomBinaryTree *create_rbt(rbf_config_t *config) {
+    treeindex_t tree_size = 1 << config->tree_depth;
     // TODO: deal with NULLs here (but there's no intelligent way to recover, so maybe just fail)
     RandomBinaryTree *tree = (RandomBinaryTree *) malloc(sizeof(RandomBinaryTree));
 
-    tree->row_index = (rownum_t *) malloc(sizeof(rownum_t) * num_rows);
-    for (rownum_t i = 0; i < num_rows; i++) {
+    tree->row_index = (rownum_t *) malloc(sizeof(rownum_t) * config->num_rows);
+    for (rownum_t i = 0; i < config->num_rows; i++) {
         tree->row_index[i] = i;
     }
-    tree->num_rows = num_rows;
+    tree->num_rows = config->num_rows;
 
     tree->tree_first = (rownum_t *) calloc(sizeof(rownum_t), (size_t) tree_size);
     tree->tree_second = (rownum_t *) calloc(sizeof(rownum_t), (size_t) tree_size);
@@ -281,13 +282,25 @@ RandomBinaryTree *create_rbt(rownum_t num_rows, treeindex_t tree_size) {
 }
 
 
-RandomBinaryTree *train_one_tree(size_t i, feature_t *feature_array,
-        rownum_t num_rows, colnum_t num_features, colnum_t num_features_to_compare,
-        size_t leaf_size, size_t tree_depth) {
-    treeindex_t tree_size = 1 << tree_depth;
-    RandomBinaryTree *tree = create_rbt(num_rows, tree_size);
+char buffer[26];
+void print_time(char *msg) {
+    //time_t my_time = time(NULL);
+    //strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", localtime(&my_time));
+    //printf("%s: %s\n", buffer, msg);
+
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    double count;
+    count = t.tv_sec * 1e9;
+    count = (count + t.tv_nsec) * 1e-9;
+    printf("%f: %s\n", count, msg);
+}
+
+
+RandomBinaryTree *train_one_tree(feature_t *feature_array, rbf_config_t *config) {
+    RandomBinaryTree *tree = create_rbt(config);
     print_time("starting tree");
-    calculate_one_node(tree, feature_array, leaf_size, num_features, num_features_to_compare, 0, num_rows, 0, 0);
+    calculate_one_node(tree, feature_array, config, 0, config->num_rows, 0, 0);
     print_time("finished tree");
     return tree;
 }
@@ -304,12 +317,11 @@ feature_t *transpose(feature_t *input, size_t rows, size_t cols) {
 }
 
 
-RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, size_t num_trees, size_t tree_depth, size_t leaf_size,
-                                                   rownum_t num_rows, colnum_t num_features, colnum_t num_features_to_compare) {
-    RandomBinaryTree **forest = (RandomBinaryTree **) malloc(sizeof(void *) * num_trees);
+RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, rbf_config_t *config) {
+    RandomBinaryTree **forest = (RandomBinaryTree **) malloc(sizeof(void *) * config->num_trees);
     #pragma omp parallel for
-    for (size_t i = 0; i < num_trees; i++) {
-        forest[i] = train_one_tree(i, feature_array, num_rows, num_features, num_features_to_compare, leaf_size, tree_depth);
+    for (size_t i = 0; i < config->num_trees; i++) {
+        forest[i] = train_one_tree(feature_array, config);
     }
     return forest;
 }
@@ -344,19 +356,4 @@ Point get_point(void) {
     Point point = {x, y};
     printf("Returning Point    (%d, %d)\n", point.x, point.y);
     return point;
-}
-
-
-char buffer[26];
-void print_time(char *msg) {
-    //time_t my_time = time(NULL);
-    //strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", localtime(&my_time));
-    //printf("%s: %s\n", buffer, msg);
-
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    double count;
-    count = t.tv_sec * 1e9;
-    count = (count + t.tv_nsec) * 1e-9;
-    printf("%f: %s\n", count, msg);
 }

@@ -52,11 +52,12 @@ bool test_select_random_features_and_get_frequencies() {
     rownum_t row_index[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     feature_t feature_array[10] = {0, 0, 5, 5, 5, 5, 7, 7, 7, 7};
     colnum_t num_features = 1, num_features_to_compare = 1;
+    rbf_config_t config = {0, 0, 0, 10, 1, 1};
     // when:
     colnum_t *feature_subset = (colnum_t *) malloc(sizeof(colnum_t) * 1);
     stats_t *counts = (stats_t *) calloc(sizeof(stats_t), 1 * NUM_CHARS);
     stats_t *weighted_totals = (stats_t *) calloc(sizeof(stats_t), 1);
-    select_random_features_and_get_frequencies(row_index, feature_array, 1, 1, 0, 10, feature_subset, counts, weighted_totals);
+    select_random_features_and_get_frequencies(row_index, feature_array, &config, 0, 10, feature_subset, counts, weighted_totals);
     // then:
     stats_t expected_counts[8] = {2, 0, 0, 0, 0, 4, 0, 4};
     return (weighted_totals[0] == 48)
