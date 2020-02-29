@@ -180,6 +180,30 @@ rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_arr
 }
 
 
+void _split_node(rownum_t *row_index, feature_t *feature_array,
+        colnum_t num_features, colnum_t num_features_to_compare, rownum_t index_start, rownum_t index_end,
+        // returns:
+        colnum_t *best_feature_num, feature_t *best_feature_split_value, rownum_t *split_pos) {
+    colnum_t *feature_subset = (colnum_t *) calloc(sizeof(colnum_t), num_features_to_compare);
+    stats_t *feature_frequencies = (stats_t *) calloc(sizeof(stats_t), num_features_to_compare * NUM_CHARS);
+    stats_t *weighted_totals = (stats_t *) calloc(sizeof(stats_t), num_features_to_compare);
+    colnum_t _best_feature_index;
+
+    select_random_features_and_get_frequencies(row_index, feature_array,
+            num_features, num_features_to_compare, index_start, index_end,
+            feature_subset, feature_frequencies, weighted_totals);
+    get_simple_best_feature(feature_frequencies, num_features_to_compare, weighted_totals, index_end - index_start,
+            &_best_feature_index, best_feature_split_value);
+    *best_feature_num = feature_subset[_best_feature_index];
+    // return values:
+    *split_pos = quick_partition(row_index, feature_array, num_features, index_start, index_end, *best_feature_num, *best_feature_split_value);
+    free(feature_subset);
+    free(feature_frequencies);
+    free(weighted_totals);
+    return;
+}
+
+
 /* display a Point value */
 void show_point(Point point) {
     printf("Point in C      is (%d, %d)\n", point.x, point.y);
