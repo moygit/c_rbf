@@ -33,12 +33,12 @@
 // - the frequency of each integer value in [0, 255]
 // - the sum of all feature values (i.e. the weighted sum over the frequency array)
 void get_feature_frequencies(rownum_t *local_row_index, feature_t local_feature_array[],
-       colnum_t feature_num, colnum_t num_features, rownum_t index_start, rownum_t index_end,
+       colnum_t feature_num, rownum_t num_rows, rownum_t index_start, rownum_t index_end,
        // returns:
        stats_t *ret_counts, stats_t *ret_weighted_total) {
     // get frequencies:
     for (rownum_t rownum = index_start; rownum < index_end; rownum++) {
-        feature_t feature_value = local_feature_array[local_row_index[rownum] * num_features + feature_num];
+        feature_t feature_value = local_feature_array[num_rows * feature_num + local_row_index[rownum]];
         ret_counts[(size_t) feature_value] += 1;
         ret_weighted_total[0] += feature_value;
     }
@@ -72,7 +72,7 @@ void select_random_features_and_get_frequencies(rownum_t *row_index, feature_t *
         features_already_selected[feature_num] = 1;
         ret_feature_subset[i] = feature_num;
         get_feature_frequencies(row_index, feature_array,
-                                feature_num, cfg->num_features, index_start, index_end,
+                                feature_num, cfg->num_rows, index_start, index_end,
                                 &(ret_feature_frequencies[i * NUM_CHARS]), &(ret_feature_weighted_totals[i]));
     }
     free(features_already_selected);
@@ -158,17 +158,17 @@ void get_simple_best_feature(stats_t *feature_frequencies,
 // quicksort-type partitioning of row_index[index_start..index_end] based on whether the
 // feature `feature_num` is less-than or greater-than-or-equal-to split_value
 rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_array,
-        colnum_t num_features, rownum_t index_start, rownum_t index_end, colnum_t feature_num, feature_t split_value) {
+        rownum_t num_rows, rownum_t index_start, rownum_t index_end, colnum_t feature_num, feature_t split_value) {
     if (index_end <= index_start) {
         return index_start;
     }
 
     rownum_t i = index_start, j = index_end - 1;
     while (i < j) {
-        while ((i < index_end) && (local_feature_array[local_row_index[i] * num_features + feature_num] <= split_value)) {
+        while ((i < index_end) && (local_feature_array[num_rows * feature_num + local_row_index[i]] <= split_value)) {
             i += 1;
         }
-        while ((j >= index_start) && (local_feature_array[local_row_index[j] * num_features + feature_num] > split_value) && (j > 0)) {
+        while ((j >= index_start) && (local_feature_array[num_rows * feature_num + local_row_index[j]] > split_value) && (j > 0)) {
             j -= 1;
         }
         if (i >= j) {
@@ -200,7 +200,7 @@ void _split_node(rownum_t *row_index, feature_t *feature_array, rbf_config_t *cf
             &_best_feature_index, best_feature_split_value);
     *best_feature_num = feature_subset[_best_feature_index];
     // return values:
-    *split_pos = quick_partition(row_index, feature_array, cfg->num_features, index_start, index_end, *best_feature_num, *best_feature_split_value);
+    *split_pos = quick_partition(row_index, feature_array, cfg->num_rows, index_start, index_end, *best_feature_num, *best_feature_split_value);
     free(feature_subset);
     free(feature_frequencies);
     free(weighted_totals);
