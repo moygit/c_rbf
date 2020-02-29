@@ -180,6 +180,8 @@ rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_arr
 }
 
 
+// Get a random subset of features, find the best one of those features,
+// and split this set of nodes on that feature.
 void _split_node(rownum_t *row_index, feature_t *feature_array,
         colnum_t num_features, colnum_t num_features_to_compare, rownum_t index_start, rownum_t index_end,
         // returns:
@@ -201,6 +203,59 @@ void _split_node(rownum_t *row_index, feature_t *feature_array,
     free(feature_frequencies);
     free(weighted_totals);
     return;
+}
+
+
+// Calculate the split (or leaf) at one node (and its descendants).
+// So this is doing all the real work of building the tree.
+// Params:
+// - tree we're building
+// - feature array
+// - leaf size, total number of features, and number of features to compare
+//   (not adding these to the tree struct b/c they're only needed at training time)
+// - index_start and index_end: the view into row_index that we're considering right now
+// - tree_array_pos: the position of this node in the tree arrays
+// - TODO: REMOVE depth of this node in the tree
+// Guarantees:
+// - Parallel calls to `calculate_one_node` will look at non-intersecting views.
+// - Child calls will look at distinct sub-views of this view.
+// - No two calls to `calculate_one_node` will have the same tree_array_pos
+void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array,
+        size_t leaf_size, colnum_t num_features, colnum_t num_features_to_compare,
+        rownum_t index_start, rownum_t index_end, treeindex_t tree_array_pos, size_t depth) {
+    if (2 * tree_array_pos + 2 >= tree->tree_size) {
+    // Special termination condition to regulate depth.
+        tree->tree_first[tree_array_pos] = HIGH_BIT_1 ^ index_start;
+        tree->tree_second[tree_array_pos] = HIGH_BIT_1 ^ index_end;
+        tree->num_leaves += 1;
+// fmt.Fprintf(tree_statsFile, "%d,%d,depth-based-leaf,%d,%d,%d,%d,%d,%d,\n", tree_array_pos, depth, index_start, index_end, index_end-index_start, 0, 0, 0)
+        return;
+    }
+
+    if (index_end - index_start < leaf_size) {
+    // Not enough items left to split. Make a leaf.
+        tree->tree_first[tree_array_pos] = HIGH_BIT_1 ^ index_start;
+        tree->tree_second[tree_array_pos] = HIGH_BIT_1 ^ index_end;
+        tree->num_leaves += 1;
+// fmt.Fprintf(tree_statsFile, "%d,%d,size-based-leaf,%d,%d,%d,%d,%d,%d,\n", tree_array_pos, depth, index_start, index_end, index_end-index_start, 0, 0, 0)
+    } else {
+    // Not a leaf. Get a random subset of numFeaturesToCompare features, find the best one, and split this node.
+    // TODO (not sure where): pick feature so that each side has at least a third of data, else don't bother splitting if below a threshold
+    //      or look at more features or something
+        colnum_t best_feature_num;
+        feature_t best_feature_split_value;
+        rownum_t index_split;
+        _split_node(tree->row_index, feature_array, num_features, num_features_to_compare, index_start, index_end,
+                    &best_feature_num, &best_feature_split_value, &index_split);
+
+        tree->tree_first[tree_array_pos] = best_feature_num;
+        tree->tree_second[tree_array_pos] = best_feature_split_value;
+// fmt.Fprintf(tree_statsFile, "%d,%d,internal,%d,%d,%d,%d,%d,%d,%s\n", tree_array_pos, depth, index_start, index_end,
+//        index_end - index_start, index_split, featureNum, featureSplitValue, features.CHAR_REVERSE_MAP[featureNum])
+        tree->num_internal_nodes += 1;
+        calculate_one_node(tree, feature_array, leaf_size, num_features, num_features_to_compare, index_start, index_split, (2*tree_array_pos)+1, depth+1);
+        calculate_one_node(tree, feature_array, leaf_size, num_features, num_features_to_compare, index_split, index_end, (2*tree_array_pos)+2, depth+1);
+    }
 }
 
 
