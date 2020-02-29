@@ -98,3 +98,22 @@ bool test_split_one_feature() {
             &&  (total_moment2 == 5.0) && (pos2 == 0) && (left_count2 == 10)
             &&  (total_moment3 == 6.5) && (pos3 == 2) && (left_count3 == 3);
 }
+
+
+bool test_get_simple_best_feature() {
+    // given:
+    stats_t feature_frequencies[10] = {1, 1, 1, 1, 1,  // first row of feature-frequencies
+                                       5, 0, 0, 0, 0}; // second row of feature-frequencies
+    stats_t weighted_totals[2] = {10, 0};              // 10 == (1 * 0) + (1 * 1) + (1 * 2) + (1 * 3) + (1 * 4) + (1 * 5)
+                                                       //  0 == (5 * 0) + (0 * 1) + ... + (0 * 4)
+    stats_t total_count = 5;
+    // when:
+    colnum_t best_feature_num;
+    feature_t best_feature_split_value;
+    get_simple_best_feature(feature_frequencies, 2, weighted_totals, total_count, &best_feature_num, &best_feature_split_value);
+    // then f0 is "better" than f1 because its split is closer to the median
+    colnum_t exp_best_feature_num = 0;
+    feature_t exp_split_value = 2;
+    return (best_feature_num == exp_best_feature_num)
+            && (best_feature_split_value == exp_split_value);
+}

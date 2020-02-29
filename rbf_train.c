@@ -128,6 +128,31 @@ void split_one_feature(stats_t *feature_bins, stats_t total_zero_moment, stats_t
 }
 
 
+// From the given features find the one which splits closest to the median.
+void get_simple_best_feature(stats_t *feature_frequencies,
+        colnum_t num_features_to_compare, stats_t *feature_weighted_totals, stats_t total_count,
+        // returns:
+        colnum_t *best_feature_num, feature_t *best_feature_split_value) {
+    *best_feature_num = 0;
+    *best_feature_split_value = 0;
+    stats_t min_split_balance = total_count, split_balance;
+    stats_t left_count;
+    size_t split_value;
+    double ignore;
+    for (colnum_t i = 0; i < num_features_to_compare; i++) {
+        split_one_feature(&(feature_frequencies[i * NUM_CHARS]), feature_weighted_totals[i], total_count,
+                &ignore, &split_value, &left_count);
+        split_balance = abs(left_count - (total_count - left_count));   // left_count - right_count
+        if (split_balance < min_split_balance) {
+            min_split_balance = split_balance;
+            *best_feature_split_value = split_value;
+            *best_feature_num = i;
+        }
+    }
+    return;
+}
+
+
 /* display a Point value */
 void show_point(Point point) {
     printf("Point in C      is (%d, %d)\n", point.x, point.y);
