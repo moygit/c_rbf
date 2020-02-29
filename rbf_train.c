@@ -77,6 +77,56 @@ void select_random_features_and_get_frequencies(rownum_t *row_index, feature_t *
 }
 
 
+// Split a set of rows on one feature, trying to get close to the median but also maximizing
+// variance.
+//
+// NOTE: We're no longer using the variance but I'm leaving all this (code and comments) unchanged.
+// We'll make it an option later. For our current use our features are sufficiently skewed that
+// using variance is unhelpful, so we simply find the split closest to the median. So we're using
+// `getSimpleBestFeature` instead of `getBestFeature`.
+//
+// We want something as close to the median as possible so as to make the tree more balanced.
+// And we want to calculate the "variance" about this split to compare features.
+//
+// CLEVERNESS ALERT (violating the "don't be clever" rule for speed):
+// Except we'll actually use the mean absolute deviation instead of the variance as it's easier and
+// better, esp since we're thinking of this in terms of Manhattan distance anyway. In fact, for our
+// purposes it suffices to calculate the *total* absolute deviation, i.e. the total moment: we don't
+// really need the mean since the denominator, the number of rows, is the same for all features that
+// we're going to compare.
+//
+// The total moment to the right of some b, say for example b = 7.5, is
+//     \\sum_{i=8}^{255} (i-7.5) * x_i = [ \\sum_{i=0}^255 (i-7.5) * x_i ] - [ \\sum_{i=0}^7 (i-7.5) x_i ]
+// That second term is actually just -(the moment to the left of b), so the total moment
+// (i.e. left + right) simplifies down to
+//     \\sum_{i=0}^255 i x_i - \\sum_{i=0}^255 7.5 x_i + 2 \\sum_{i=0}^7 7.5 x_i - 2 \\sum_{i=0}^7 i x_i
+// So we only need to track the running left-count and the running left-moment (w.r.t. 0), and then
+// we can calculate the total moment w.r.t. median when we're done.
+//
+// Summary: Starting at 0.5 (no use starting at 0), iterate (a) adding to simple count, and (b)
+// adding to left-side total moment. Stop as soon as the count is greater than half the total number
+// of rows, and at that point we have a single expression for the total moment.
+void split_one_feature(stats_t *feature_bins, stats_t total_zero_moment, stats_t count,
+        // returns:
+        double *total_moment, size_t *pos, stats_t *left_count) {
+    *pos = 0;
+    *left_count = feature_bins[0];
+    stats_t fifty_percentile = count / 2;
+    stats_t left_zero_moment = 0, this_item_moment;
+    stats_t this_item_count;
+    while (*left_count <= fifty_percentile) {
+        *pos += 1;
+        this_item_count = feature_bins[*pos];
+        this_item_moment = this_item_count * *pos;
+        *left_count += this_item_count;
+        left_zero_moment += this_item_moment;
+    }
+    double real_pos = *pos + 0.5;   // want moment about e.g. 7.5, not 7 (using numbers in example above)
+                                    // See moment computation example in comment above
+    *total_moment = total_zero_moment - (real_pos * count) + (2 * ((real_pos * *left_count) - left_zero_moment));
+    return;
+}
+
 
 /* display a Point value */
 void show_point(Point point) {

@@ -62,3 +62,39 @@ bool test_select_random_features_and_get_frequencies() {
             &&  _test_array_equals(counts, 8, expected_counts, 8)
             &&  _test_array_seg_eq_val(counts, 8, NUM_CHARS, 0);
 }
+
+
+void _get_moment_and_count(stats_t lis[], size_t len_lis,
+        // ret vals:
+        stats_t *moment, stats_t *count) {
+    *moment = 0;
+    *count = 0;
+    for (size_t i = 0; i < len_lis; i++) {
+        *count += lis[i];
+        *moment += (i * lis[i]);
+    }
+    return;
+}
+
+
+bool test_split_one_feature() {
+    stats_t moment1, moment2, moment3, count1, count2, count3;
+    double total_moment1, total_moment2, total_moment3;
+    size_t pos1, pos2, pos3;
+    stats_t left_count1, left_count2, left_count3;
+    // given:
+    stats_t L1[8] = {10, 5, 4, 0, 0, 11, 12, 13};
+    _get_moment_and_count(L1, 8, &moment1, &count1);      // 231, 55
+    stats_t L2[5] = {10, 0, 0, 0, 0};
+    _get_moment_and_count(L2, 5, &moment2, &count2);      // 0, 10
+    stats_t L3[5] = {1, 1, 1, 1, 1};
+    _get_moment_and_count(L3, 5, &moment3, &count3);      // 10, 5
+    // when:
+    split_one_feature(L1, moment1, count1, &total_moment1, &pos1, &left_count1);
+    split_one_feature(L2, moment2, count2, &total_moment2, &pos2, &left_count2);
+    split_one_feature(L3, moment3, count3, &total_moment3, &pos3, &left_count3);
+    // then:
+    return (total_moment1 == 122.5) && (pos1 == 5) && (left_count1 == 30)
+            &&  (total_moment2 == 5.0) && (pos2 == 0) && (left_count2 == 10)
+            &&  (total_moment3 == 6.5) && (pos3 == 2) && (left_count3 == 3);
+}
