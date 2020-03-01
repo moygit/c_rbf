@@ -1,13 +1,14 @@
 #ifndef __POINT_H__
 #define __POINT_H__
 
+#include <stdint.h>
 #include <stdlib.h>
 
 typedef _Bool bool;
 typedef char feature_t;
-typedef uint rownum_t;
-typedef uint colnum_t;
-typedef uint stats_t;
+typedef uint32_t rownum_t;
+typedef uint32_t colnum_t;
+typedef uint32_t stats_t;
 typedef size_t treeindex_t;
 
 bool test();
