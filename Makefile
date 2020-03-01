@@ -15,7 +15,7 @@ clean:
 	gcc -c -Wall -Werror -fpic -fopenmp $^
 
 librbf.so: rbf_train.o rbf_io.o rbf_query.o
-	gcc -shared $^ -o $@
+	gcc -shared -fopenmp $^ -o $@
 
 doc:
 	pandoc ctypes2.md > ctypes2.html
