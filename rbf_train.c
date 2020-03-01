@@ -32,13 +32,13 @@
 // Returns: for feature `feature_num`:
 // - the frequency of each integer value in [0, 255]
 // - the sum of all feature values (i.e. the weighted sum over the frequency array)
-void get_feature_frequencies(rownum_t *local_row_index, feature_t local_feature_array[],
-       colnum_t feature_num, rownum_t num_rows, rownum_t index_start, rownum_t index_end,
+void get_feature_frequencies(rownum_type *local_row_index, feature_type local_feature_array[],
+       colnum_type feature_num, rownum_type num_rows, rownum_type index_start, rownum_type index_end,
        // returns:
-       stats_t *ret_counts, stats_t *ret_weighted_total) {
+       stats_type *ret_counts, stats_type *ret_weighted_total) {
     // get frequencies:
-    for (rownum_t rownum = index_start; rownum < index_end; rownum++) {
-        feature_t feature_value = local_feature_array[num_rows * feature_num + local_row_index[rownum]];
+    for (rownum_type rownum = index_start; rownum < index_end; rownum++) {
+        feature_type feature_value = local_feature_array[num_rows * feature_num + local_row_index[rownum]];
         ret_counts[(size_t) feature_value] += 1;
         ret_weighted_total[0] += feature_value;
     }
@@ -59,13 +59,13 @@ void get_feature_frequencies(rownum_t *local_row_index, feature_t local_feature_
 
 
 // Select a random subset of features and get the frequencies for those features.
-void select_random_features_and_get_frequencies(rownum_t *row_index, feature_t *feature_array,
-        rbf_config_t *cfg, rownum_t index_start, rownum_t index_end,
+void select_random_features_and_get_frequencies(rownum_type *row_index, feature_type *feature_array,
+        RbfConfig *cfg, rownum_type index_start, rownum_type index_end,
         // returns:
-        colnum_t *ret_feature_subset, stats_t *ret_feature_frequencies, stats_t *ret_feature_weighted_totals) {
+        colnum_type *ret_feature_subset, stats_type *ret_feature_frequencies, stats_type *ret_feature_weighted_totals) {
     bool *features_already_selected = (bool *) calloc(sizeof(bool), cfg->num_features);
-    for (colnum_t i = 0; i < cfg->num_features_to_compare; i++) {
-        colnum_t feature_num = rand() % cfg->num_features;
+    for (colnum_type i = 0; i < cfg->num_features_to_compare; i++) {
+        colnum_type feature_num = rand() % cfg->num_features;
         while (features_already_selected[(size_t) feature_num]) {
             feature_num = rand() % cfg->num_features;
         }
@@ -108,14 +108,14 @@ void select_random_features_and_get_frequencies(rownum_t *row_index, feature_t *
 // Summary: Starting at 0.5 (no use starting at 0), iterate (a) adding to simple count, and (b)
 // adding to left-side total moment. Stop as soon as the count is greater than half the total number
 // of rows, and at that point we have a single expression for the total moment.
-void split_one_feature(stats_t *feature_bins, stats_t total_zero_moment, stats_t count,
+void split_one_feature(stats_type *feature_bins, stats_type total_zero_moment, stats_type count,
         // returns:
-        double *total_moment, size_t *pos, stats_t *left_count) {
+        double *total_moment, size_t *pos, stats_type *left_count) {
     *pos = 0;
     *left_count = feature_bins[0];
-    stats_t fifty_percentile = count / 2;
-    stats_t left_zero_moment = 0, this_item_moment;
-    stats_t this_item_count;
+    stats_type fifty_percentile = count / 2;
+    stats_type left_zero_moment = 0, this_item_moment;
+    stats_type this_item_count;
     while (*left_count <= fifty_percentile) {
         *pos += 1;
         this_item_count = feature_bins[*pos];
@@ -131,17 +131,17 @@ void split_one_feature(stats_t *feature_bins, stats_t total_zero_moment, stats_t
 
 
 // From the given features find the one which splits closest to the median.
-void get_simple_best_feature(stats_t *feature_frequencies,
-        colnum_t num_features_to_compare, stats_t *feature_weighted_totals, stats_t total_count,
+void get_simple_best_feature(stats_type *feature_frequencies,
+        colnum_type num_features_to_compare, stats_type *feature_weighted_totals, stats_type total_count,
         // returns:
-        colnum_t *best_feature_num, feature_t *best_feature_split_value) {
+        colnum_type *best_feature_num, feature_type *best_feature_split_value) {
     *best_feature_num = 0;
     *best_feature_split_value = 0;
-    stats_t min_split_balance = total_count, split_balance;
-    stats_t left_count;
+    stats_type min_split_balance = total_count, split_balance;
+    stats_type left_count;
     size_t split_value;
     double ignore;
-    for (colnum_t i = 0; i < num_features_to_compare; i++) {
+    for (colnum_type i = 0; i < num_features_to_compare; i++) {
         split_one_feature(&(feature_frequencies[i * NUM_CHARS]), feature_weighted_totals[i], total_count,
                 &ignore, &split_value, &left_count);
         split_balance = abs(left_count - (total_count - left_count));   // left_count - right_count
@@ -157,13 +157,13 @@ void get_simple_best_feature(stats_t *feature_frequencies,
 
 // quicksort-type partitioning of row_index[index_start..index_end] based on whether the
 // feature `feature_num` is less-than or greater-than-or-equal-to split_value
-rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_array,
-        rownum_t num_rows, rownum_t index_start, rownum_t index_end, colnum_t feature_num, feature_t split_value) {
+rownum_type quick_partition(rownum_type *local_row_index, feature_type *local_feature_array,
+        rownum_type num_rows, rownum_type index_start, rownum_type index_end, colnum_type feature_num, feature_type split_value) {
     if (index_end <= index_start) {
         return index_start;
     }
 
-    rownum_t i = index_start, j = index_end - 1;
+    rownum_type i = index_start, j = index_end - 1;
     while (i < j) {
         while ((i < index_end) && (local_feature_array[num_rows * feature_num + local_row_index[i]] <= split_value)) {
             i += 1;
@@ -174,7 +174,7 @@ rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_arr
         if (i >= j) {
             return i;
         }
-        rownum_t tmp = local_row_index[i];
+        rownum_type tmp = local_row_index[i];
         local_row_index[i] = local_row_index[j];
         local_row_index[j] = tmp;
     }
@@ -184,14 +184,14 @@ rownum_t quick_partition(rownum_t *local_row_index, feature_t *local_feature_arr
 
 // Get a random subset of features, find the best one of those features,
 // and split this set of nodes on that feature.
-void _split_node(rownum_t *row_index, feature_t *feature_array, rbf_config_t *cfg,
-        rownum_t index_start, rownum_t index_end,
+void _split_node(rownum_type *row_index, feature_type *feature_array, RbfConfig *cfg,
+        rownum_type index_start, rownum_type index_end,
         // returns:
-        colnum_t *best_feature_num, feature_t *best_feature_split_value, rownum_t *split_pos) {
-    colnum_t *feature_subset = (colnum_t *) calloc(sizeof(colnum_t), cfg->num_features_to_compare);
-    stats_t *feature_frequencies = (stats_t *) calloc(sizeof(stats_t), cfg->num_features_to_compare * NUM_CHARS);
-    stats_t *weighted_totals = (stats_t *) calloc(sizeof(stats_t), cfg->num_features_to_compare);
-    colnum_t _best_feature_index;
+        colnum_type *best_feature_num, feature_type *best_feature_split_value, rownum_type *split_pos) {
+    colnum_type *feature_subset = (colnum_type *) calloc(sizeof(colnum_type), cfg->num_features_to_compare);
+    stats_type *feature_frequencies = (stats_type *) calloc(sizeof(stats_type), cfg->num_features_to_compare * NUM_CHARS);
+    stats_type *weighted_totals = (stats_type *) calloc(sizeof(stats_type), cfg->num_features_to_compare);
+    colnum_type _best_feature_index;
 
     select_random_features_and_get_frequencies(row_index, feature_array,
             cfg, index_start, index_end,
@@ -223,8 +223,8 @@ void _split_node(rownum_t *row_index, feature_t *feature_array, rbf_config_t *cf
 // - Parallel calls to `calculate_one_node` will look at non-intersecting views.
 // - Child calls will look at distinct sub-views of this view.
 // - No two calls to `calculate_one_node` will have the same tree_array_pos
-void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array, rbf_config_t *config,
-        rownum_t index_start, rownum_t index_end, treeindex_t tree_array_pos, size_t depth) {
+void calculate_one_node(RandomBinaryTree *tree, feature_type *feature_array, RbfConfig *config,
+        rownum_type index_start, rownum_type index_end, treeindex_type tree_array_pos, size_t depth) {
     if (2 * tree_array_pos + 2 >= tree->tree_size) {
     // Special termination condition to regulate depth.
         tree->tree_first[tree_array_pos] = HIGH_BIT_1 ^ index_start;
@@ -244,9 +244,9 @@ void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array, rbf_co
     // Not a leaf. Get a random subset of numFeaturesToCompare features, find the best one, and split this node.
     // TODO (not sure where): pick feature so that each side has at least a third of data, else don't bother splitting if below a threshold
     //      or look at more features or something
-        colnum_t best_feature_num;
-        feature_t best_feature_split_value;
-        rownum_t index_split;
+        colnum_type best_feature_num;
+        feature_type best_feature_split_value;
+        rownum_type index_split;
         _split_node(tree->row_index, feature_array, config, index_start, index_end,
                     &best_feature_num, &best_feature_split_value, &index_split);
 
@@ -261,19 +261,19 @@ void calculate_one_node(RandomBinaryTree *tree, feature_t *feature_array, rbf_co
 }
 
 
-RandomBinaryTree *create_rbt(rbf_config_t *config) {
-    treeindex_t tree_size = 1 << config->tree_depth;
+RandomBinaryTree *create_rbt(RbfConfig *config) {
+    treeindex_type tree_size = 1 << config->tree_depth;
     // TODO: deal with NULLs here (but there's no intelligent way to recover, so maybe just fail)
     RandomBinaryTree *tree = (RandomBinaryTree *) malloc(sizeof(RandomBinaryTree));
 
-    tree->row_index = (rownum_t *) malloc(sizeof(rownum_t) * config->num_rows);
-    for (rownum_t i = 0; i < config->num_rows; i++) {
+    tree->row_index = (rownum_type *) malloc(sizeof(rownum_type) * config->num_rows);
+    for (rownum_type i = 0; i < config->num_rows; i++) {
         tree->row_index[i] = i;
     }
     tree->num_rows = config->num_rows;
 
-    tree->tree_first = (rownum_t *) calloc(sizeof(rownum_t), (size_t) tree_size);
-    tree->tree_second = (rownum_t *) calloc(sizeof(rownum_t), (size_t) tree_size);
+    tree->tree_first = (rownum_type *) calloc(sizeof(rownum_type), (size_t) tree_size);
+    tree->tree_second = (rownum_type *) calloc(sizeof(rownum_type), (size_t) tree_size);
     tree->tree_size = tree_size;
 
     tree->num_internal_nodes = 0;
@@ -297,7 +297,7 @@ void print_time(char *msg) {
 }
 
 
-RandomBinaryTree *train_one_tree(feature_t *feature_array, rbf_config_t *config) {
+RandomBinaryTree *train_one_tree(feature_type *feature_array, RbfConfig *config) {
     RandomBinaryTree *tree = create_rbt(config);
     print_time("starting tree");
     calculate_one_node(tree, feature_array, config, 0, config->num_rows, 0, 0);
@@ -306,8 +306,8 @@ RandomBinaryTree *train_one_tree(feature_t *feature_array, rbf_config_t *config)
 }
 
 
-feature_t *transpose(feature_t *input, size_t rows, size_t cols) {
-    feature_t *output = (feature_t *) malloc(sizeof(feature_t) * rows * cols);
+feature_type *transpose(feature_type *input, size_t rows, size_t cols) {
+    feature_type *output = (feature_type *) malloc(sizeof(feature_type) * rows * cols);
     for (size_t i = 0; i < rows; i++) {
         for (size_t j = 0; j < cols; j++) {
             output[j * rows + i] = input[i * cols + j];
@@ -317,7 +317,7 @@ feature_t *transpose(feature_t *input, size_t rows, size_t cols) {
 }
 
 
-RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, rbf_config_t *config) {
+RandomBinaryTree **train_forest(feature_type *feature_array, RbfConfig *config) {
     RandomBinaryTree **forest = (RandomBinaryTree **) malloc(sizeof(void *) * config->num_trees);
     #pragma omp parallel for
     for (size_t i = 0; i < config->num_trees; i++) {

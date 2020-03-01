@@ -5,11 +5,11 @@
 #include <stdlib.h>
 
 typedef _Bool bool;
-typedef char feature_t;
-typedef uint32_t rownum_t;
-typedef uint32_t colnum_t;
-typedef uint32_t stats_t;
-typedef size_t treeindex_t;
+typedef char feature_type;
+typedef uint32_t rownum_type;
+typedef uint32_t colnum_type;
+typedef uint32_t stats_type;
+typedef size_t treeindex_type;
 
 bool test();
 
@@ -25,8 +25,8 @@ typedef struct {
 	// We have arrays of arrays of features. Instead of expensively moving those rows around when
 	// sorting and partitioning we have an index into those and move the index elements around.
 	// Lookups will be slightly slower but we'll save time overall.
-    rownum_t *row_index;
-    rownum_t num_rows;
+    rownum_type *row_index;
+    rownum_type num_rows;
 
 	// Ugliness alert:
 	// Each tree node is a pair. For speed and space efficiency we'll store the tree in 2 arrays
@@ -39,23 +39,23 @@ typedef struct {
 	// 1. Yes, I know this is ugly, but the alternative is to have a whole 'nother pair of large arrays.
 	// 2. Yes, I considered using hashmaps instead [in Go], but they're much slower (expected) and also
 	//    take WAY more memory (which surprised me).
-    rownum_t *tree_first;
-    rownum_t *tree_second;
-    treeindex_t tree_size;
-    treeindex_t num_internal_nodes;
-    treeindex_t num_leaves;
+    rownum_type *tree_first;
+    rownum_type *tree_second;
+    treeindex_type tree_size;
+    treeindex_type num_internal_nodes;
+    treeindex_type num_leaves;
 } RandomBinaryTree;
 
 typedef struct {
     size_t num_trees;
     size_t tree_depth;
     size_t leaf_size;
-    rownum_t num_rows;
-    colnum_t num_features;
-    colnum_t num_features_to_compare;
-} rbf_config_t;
+    rownum_type num_rows;
+    colnum_type num_features;
+    colnum_type num_features_to_compare;
+} RbfConfig;
 
-RandomBinaryTree **train_forest_with_feature_array(feature_t *feature_array, rbf_config_t *config);
+RandomBinaryTree **train_forest(feature_type *feature_array, RbfConfig *config);
 
 void query_forest(RandomBinaryTree *forest, int num_trees,
         // returns:
