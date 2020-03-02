@@ -1,5 +1,6 @@
 #include "rbf.h"
 #include "_rbf_train.h"
+#include "_rbf_query.h"
 
 #test rbf_test
     fail_unless(test_get_feature_frequencies(), "get_feeature_frequencies failure");
@@ -8,3 +9,4 @@
     fail_unless(test_get_simple_best_feature(), "get_simple_best_feature failure");
     fail_unless(test_quick_partition(), "quick_partition failure");
     fail_unless(test_transpose(), "transpose failure");
+    fail_unless(test_query(), "query failure");

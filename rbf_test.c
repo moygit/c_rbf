@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "rbf.h"
 #include "_rbf_train.h"
+#include "_rbf_query.h"
 
 bool test() {
     return 1;
@@ -176,15 +177,54 @@ bool test_quick_partition() {
 
 
 bool test_transpose() {
-    feature_type input[] = {1, 2, 3,  // thinking of this as a matrix with 2 rows, 3 cols
-                         4, 5, 6};
+    feature_type input[] = {1, 2, 3,  // matrix with 2 rows, 3 cols
+                            4, 5, 6};
     feature_type *output = transpose(input, 2, 3);
     feature_type exp_transpose[] = {1, 4,
-                                 2, 5,
-                                 3, 6};
+                                    2, 5,
+                                    3, 6};
     bool compare = 1;
     for (size_t i = 0; i < 6; i++) {
         compare = compare && (output[i] == exp_transpose[i]);
     }
     return compare;
+}
+
+bool test_query() {
+    // given:
+
+    // Create two identical dummy trees for testing.
+    //
+    // The test tree looks like it was "trained" on bigrams of the strings "aaa" and "abc".
+    //   root node:
+    //     tree_first[0]: i.e. split on the 0 feature (i.e. "aa")
+    //     tree_second[0]: split-value 1
+    //   left child:
+    //     tree_first[1]: (leaf) 1 ("abc")  (actually HIGH_BIT_1 ^ 1)
+    //     tree_second[1]: (leaf) 2         (actualy HIGH_BIT_1 ^ 2)
+    //   right child:
+    //     tree_first[2]: (leaf) 0 ("aaa")  (actually HIGH_BIT_1 ^ 0)
+    //     tree_second[2]: (leaf) 1         (actually HIGH_BIT_1 ^ 1)
+    rownum_type row_index[] = {0, 1};
+    int num_rows = 2;
+    rownum_type tree_first[] = {0, HIGH_BIT_1 ^ 1, HIGH_BIT_1 ^ 0};
+    rownum_type tree_second[] = {1, HIGH_BIT_1 ^ 2, HIGH_BIT_1 ^ 1};
+    int tree_size = 3;
+    RandomBinaryTree tree = {row_index, num_rows, tree_first, tree_second, tree_size, 0, 0};
+    RandomBinaryTree trees[] = {tree, tree};
+    int num_trees = 2;
+    int num_features = 1;
+    RbfConfig config = {num_trees, 0, 0, 0, num_features, num_features};
+    RandomBinaryForest forest = {&config, trees};
+
+    feature_type point[] = {6};
+
+    // when
+    RbfResults *results = query_forest(&forest, point, num_features);
+
+    // then
+    return (results->tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
+            && (results->tree_result_counts[1] == 1)
+            && (results->tree_results[0][0] == 0)       // and the result is "aaa"
+            && (results->tree_results[1][0] == 0);
 }

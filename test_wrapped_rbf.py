@@ -2,22 +2,15 @@
 import ctypes
 
 
-# typedef char feature_type;
-# typedef uint32_t rownum_type;
-# typedef uint32_t colnum_type;
-# typedef uint32_t stats_type;
-# typedef size_t treeindex_type;
-
-
 class RbfConfig(ctypes.Structure):
     _fields_ = [("num_trees", ctypes.c_size_t),
                 ("tree_depth", ctypes.c_size_t),
                 ("leaf_size", ctypes.c_size_t),
-                ("num_rows", ctypes.c_uint32_t),
-                ("num_features", ctypes.c_uint32_t),
-                ("num_features_to_compare", ctypes.c_uint32_t)]
+                ("num_rows", ctypes.c_uint32),
+                ("num_features", ctypes.c_uint32),
+                ("num_features_to_compare", ctypes.c_uint32)]
 
-    def __init__(self, num_trees, tree_depth, leaf_size, num_row, num_features, num_features_to_compare):
+    def __init__(self, num_trees, tree_depth, leaf_size, num_rows, num_features, num_features_to_compare):
         self.num_trees = num_trees
         self.tree_depth = tree_depth
         self.leaf_size = leaf_size
@@ -27,6 +20,10 @@ class RbfConfig(ctypes.Structure):
 
     def __repr__(self):
         return f"num_trees: {self.num_trees}, tree_depth: {self.tree_depth}, leaf_size: {self.leaf_size}, num_rows: {self.num_rows}, num_features: {self.num_features}, num_features_to_compare: {self.num_features_to_compare}"
+
+
+class RbfResultsArray(ctypes.Structure):
+    _fields_ = [("results", ctypes.POINTER(ctypes.c_uint32)), ("num_results", ctypes.c_size_t)]
 
 
 class Point(ctypes.Structure):

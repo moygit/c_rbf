@@ -55,11 +55,19 @@ typedef struct {
     colnum_type num_features_to_compare;
 } RbfConfig;
 
-RandomBinaryTree **train_forest(feature_type *feature_array, RbfConfig *config);
+typedef struct {
+    RbfConfig *config;
+    RandomBinaryTree *trees;
+} RandomBinaryForest;
 
-void query_forest(RandomBinaryTree *forest, int num_trees,
-        // returns:
-        int *results, int num_results);
+RandomBinaryForest *train_forest(feature_type *feature_array, RbfConfig *config);
+
+typedef struct {
+    rownum_type **tree_results;
+    size_t *tree_result_counts;
+} RbfResults;
+
+RbfResults *query_forest(RandomBinaryForest *forest, feature_type *point, size_t point_dimension);
 
 void print_time(char *msg);
 

@@ -317,11 +317,13 @@ feature_type *transpose(feature_type *input, size_t rows, size_t cols) {
 }
 
 
-RandomBinaryTree **train_forest(feature_type *feature_array, RbfConfig *config) {
-    RandomBinaryTree **forest = (RandomBinaryTree **) malloc(sizeof(void *) * config->num_trees);
+RandomBinaryForest *train_forest(feature_type *feature_array, RbfConfig *config) {
+    RandomBinaryForest *forest = (RandomBinaryForest *) malloc(sizeof(RandomBinaryForest));
+    forest->config = config;
+    forest->trees = (RandomBinaryTree *) malloc(sizeof(RandomBinaryTree) * config->num_trees);
     #pragma omp parallel for
     for (size_t i = 0; i < config->num_trees; i++) {
-        forest[i] = train_one_tree(feature_array, config);
+        forest->trees[i] = *train_one_tree(feature_array, config);
     }
     return forest;
 }
