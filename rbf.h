@@ -11,8 +11,6 @@ typedef uint32_t colnum_type;
 typedef uint32_t stats_type;
 typedef size_t treeindex_type;
 
-bool test();
-
 #define NUM_TREES 20
 // #define TREE_SIZE (1 << 25)     // 2^25, roughly 32M
 #define LEAF_SIZE 8
@@ -70,16 +68,5 @@ typedef struct {
 RbfResults *query_forest(RandomBinaryForest *forest, feature_type *point, size_t point_dimension);
 
 void print_time(char *msg);
-
-/* Simple structure for ctypes example */
-typedef struct {
-    int x;
-    int y;
-} Point;
-
-void show_point(Point point);
-void move_point(Point point);
-void move_point_by_ref(Point *point);
-Point get_point(void);
 
 #endif /* __POINT_H__ */

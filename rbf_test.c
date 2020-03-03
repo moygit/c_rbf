@@ -3,10 +3,6 @@
 #include "_rbf_train.h"
 #include "_rbf_query.h"
 
-bool test() {
-    return 1;
-}
-
 
 bool _test_array_seg_eq_val(uint arr1[], size_t start, size_t end, uint val) {
     for (size_t i = start; i < end; i++) {

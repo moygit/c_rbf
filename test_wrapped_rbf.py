@@ -2,6 +2,16 @@
 import ctypes
 
 
+rbf = ctypes.CDLL("librbf.so")
+
+
+feature_type = ctypes.c_char
+rownum_type = ctypes.c_uint32
+colnum_type = ctypes.c_uint32
+stats_type = ctypes.c_uint32
+treeindex_type = ctypes.c_size_t
+
+
 class RbfConfig(ctypes.Structure):
     _fields_ = [("num_trees", ctypes.c_size_t),
                 ("tree_depth", ctypes.c_size_t),
@@ -21,80 +31,57 @@ class RbfConfig(ctypes.Structure):
     def __repr__(self):
         return f"num_trees: {self.num_trees}, tree_depth: {self.tree_depth}, leaf_size: {self.leaf_size}, num_rows: {self.num_rows}, num_features: {self.num_features}, num_features_to_compare: {self.num_features_to_compare}"
 
+class RandomBinaryTree(ctypes.Structure):
+    _fields_ = [("row_index", ctypes.POINTER(rownum_type)),
+                ("num_rows", rownum_type),
+                ("tree_first", ctypes.POINTER(rownum_type)),
+                ("tree_second", ctypes.POINTER(rownum_type)),
+                ("tree_size", treeindex_type),
+                ("num_internal_nodes", treeindex_type),
+                ("num_leaves", treeindex_type)]
 
-class RbfResultsArray(ctypes.Structure):
-    _fields_ = [("results", ctypes.POINTER(ctypes.c_uint32)), ("num_results", ctypes.c_size_t)]
+class RandomBinaryForest(ctypes.Structure):
+    _fields_ = [("config", ctypes.POINTER(RbfConfig)),
+                ("trees", ctypes.POINTER(RandomBinaryTree))]
 
 
-class Point(ctypes.Structure):
-    _fields_ = [('x', ctypes.c_int), ('y', ctypes.c_int)]
-    _libc = ctypes.CDLL("./librbf.so")
+class RbfResults(ctypes.Structure):
+    _fields_ = [("tree_results", ctypes.POINTER(ctypes.POINTER(ctypes.c_uint32))), ("tree_results_counts", ctypes.POINTER(ctypes.c_int))]
 
-    def __init__(self, x=None, y=None):
-        if x:
-            self.x = x
-            self.y = y
-        else:
-            point = self.get_point()
-            self.x = point.x
-            self.y = point.y
 
-    def __repr__(self):
-        return '({0}, {1})'.format(self.x, self.y)
+train_forest = rbf.__getattr__("train_forest")
+train_forest.restype = ctypes.POINTER(RandomBinaryForest)
+train_forest.argtypes = [ctypes.POINTER(feature_type), ctypes.POINTER(RbfConfig)]
 
-    def show_point(self):
-        self.show_point_func(self)
+query_forest = rbf.__getattr__("query_forest")
+query_forest.restype = ctypes.POINTER(RbfResults)
+query_forest.argtypes = [ctypes.c_void_p, ctypes.POINTER(feature_type), ctypes.c_size_t]
 
-    def move_point(self):
-        self.move_point_func(self)
 
-    def move_point_by_ref(self):
-        self.move_point_by_ref_func(self)
+# import sys
+# sys.path.append("/home/moy/signifyd/addresses/rbf")
+# import logging
+# import time
+# from typing import List
+#
+# from multiprocessing import Pool
+# from multiprocessing.sharedctypes import RawArray
+#
+# import fastDamerauLevenshtein as fdl
+#
+# import followgrams as f
+# followgrams = f.get_followgrams("this is the way the world ends")
 
-    @staticmethod
-    def wrap_function(funcname, restype, argtypes):
-        func = Point._libc.__getattr__(funcname)
-        func.restype = restype
-        func.argtypes = argtypes
-        return func
-
-Point.get_point = Point.wrap_function('get_point', Point, None)
-Point.show_point_func = Point.wrap_function('show_point', None, [Point])
-Point.move_point_func = Point.wrap_function('move_point', None, [Point])
-Point.move_point_by_ref_func = Point.wrap_function('move_point_by_ref', None,
-                                                   [ctypes.POINTER(Point)])
 
 if __name__ == '__main__':
-    ###########################################################################
-    print("Pass a struct into C")
-    a = Point(1, 2)
-    print("Point in python is", a)
-    a.show_point()
-    print()
+    with open("features.bin", "rb") as f:
+        feature_array = f.read()
 
-    ###########################################################################
-    print("Pass by value")
-    a = Point(5, 6)
-    print("Point in python is", a)
-    a.move_point()
-    print("Point in python is", a)
-    print()
+    config = RbfConfig(20, 25, 64, 151511, 37*37, 37)
+    forest = train_forest(feature_array, ctypes.byref(config))
 
-    ###########################################################################
-    print("Pass by reference")
-    a = Point(5, 6)
-    print("Point in python is", a)
-    a.move_point_by_ref()
-    print("Point in python is", a)
-    print()
-
-    ###########################################################################
-    print("Get Struct from C")
-    a = Point()
-    print("New Point in python (from C) is", a)
-    a = Point()
-    print("New Point in python (from C) is", a)
-    a = Point()
-    print("New Point in python (from C) is", a)
-    a = Point()
-    print("New Point in python (from C) is", a)
+    results = query_forest(forest, feature_array[:1369], 1369)
+    results_obj = results[0]
+    # print("Results: ", results_obj)
+    for i in range(20):
+        print(results_obj.tree_results_counts[i])
