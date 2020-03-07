@@ -1,23 +1,25 @@
-#ifndef __POINT_H__
-#define __POINT_H__
+#ifndef __RBF_H__
+#define __RBF_H__
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef _Bool bool;
+#define NUM_TREES 20
+#define LEAF_SIZE 8
+#define NUM_BITS 32  // we want to store some shorts but also some ints, so need 4 bytes
+#define HIGH_BIT 31  // low bit is 0, high bit is 15
+#define HIGH_BIT_1 (1 << HIGH_BIT)
+#define NUM_CHARS 256
+
+
+// typedef these so they're easier to change if ever needed
 typedef char feature_type;
 typedef uint32_t rownum_type;
 typedef uint32_t colnum_type;
 typedef uint32_t stats_type;
 typedef size_t treeindex_type;
 
-#define NUM_TREES 20
-// #define TREE_SIZE (1 << 25)     // 2^25, roughly 32M
-#define LEAF_SIZE 8
-#define NUM_BITS 32  // we want to store some shorts but also some ints, so need 4 bytes
-#define HIGH_BIT 31  // low bit is 0, high bit is 15
-#define HIGH_BIT_1 (1 << HIGH_BIT)
-#define NUM_CHARS 256
 
 typedef struct {
 	// We have arrays of arrays of features. Instead of expensively moving those rows around when
@@ -58,15 +60,18 @@ typedef struct {
     RandomBinaryTree *trees;
 } RandomBinaryForest;
 
-RandomBinaryForest *train_forest(feature_type *feature_array, RbfConfig *config);
-
 typedef struct {
     rownum_type **tree_results;
     size_t *tree_result_counts;
 } RbfResults;
 
+RandomBinaryForest *train_forest(feature_type *feature_array, RbfConfig *config);
+
 RbfResults *query_forest(RandomBinaryForest *forest, feature_type *point, size_t point_dimension);
 
+feature_type *transpose(feature_type *input, size_t rows, size_t cols);
+
+// Used for debugging
 void print_time(char *msg);
 
-#endif /* __POINT_H__ */
+#endif /* __RBF_H__ */
