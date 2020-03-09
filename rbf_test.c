@@ -29,7 +29,8 @@ bool _test_array_equals(uint arr1[], size_t arr1_size, uint arr2[], size_t arr2_
 bool test_feature_column_to_bins() {
     // given:
     uint row_index[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    feature_type feature_array[] = {0, 0, 5, 5, 5, 5, 7, 7, 7, 7};
+    feature_type feature_array[] = {0, 0, 5, 5, 5, 5, 7, 7, 7, 7,   // 0th feature
+                                    1, 1, 1, 1, 1, 1, 1, 1, 1, 1};  // 1st feature
     colnum_type feature_num = 0;
     rownum_type index_start = 0, index_end = 10, num_rows = 10;
     // when:
@@ -46,20 +47,29 @@ bool test_feature_column_to_bins() {
 
 bool test_select_random_features_and_get_frequencies() {
     // given:
+    srand(2); // ensures we select feature 0
     rownum_type row_index[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    feature_type feature_array[10] = {0, 0, 5, 5, 5, 5, 7, 7, 7, 7};
-    colnum_type num_features = 1, num_features_to_compare = 1;
-    RbfConfig config = {0, 0, 0, 10, 1, 1};
+    feature_type feature_array[20] = {0, 0, 5, 5, 5, 5, 7, 7, 7, 7,
+                                      1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    colnum_type num_features = 2, num_features_to_compare = 1;
+    RbfConfig config = {0, 0, 0, 10, 2, 1};
     // when:
-    colnum_type *feature_subset = (colnum_type *) malloc(sizeof(colnum_type) * 1);
+    colnum_type feature_subset;
     stats_type *counts = (stats_type *) calloc(sizeof(stats_type), 1 * NUM_CHARS);
-    stats_type *weighted_totals = (stats_type *) calloc(sizeof(stats_type), 1);
-    select_random_features_and_get_frequencies(row_index, feature_array, &config, 0, 10, feature_subset, counts, weighted_totals);
+    stats_type weighted_total = 0;
+    select_random_features_and_get_frequencies(row_index, feature_array, &config, 0, 10, &feature_subset, counts, &weighted_total);
     // then:
     stats_type expected_counts[8] = {2, 0, 0, 0, 0, 4, 0, 4};
-    return (weighted_totals[0] == 48)
-            &&  _test_array_equals(counts, 8, expected_counts, 8)
-            &&  _test_array_seg_eq_val(counts, 8, NUM_CHARS, 0);
+    bool test1_passed = (feature_subset == 0)
+                         &&  (weighted_total == 48)
+                         &&  _test_array_equals(counts, 8, expected_counts, 8)
+                         &&  _test_array_seg_eq_val(counts, 8, NUM_CHARS, 0);
+
+    srand(1); // ensures we select feature 1
+    weighted_total = 0;
+    select_random_features_and_get_frequencies(row_index, feature_array, &config, 0, 10, &feature_subset, counts, &weighted_total);
+    bool test2_passed = (feature_subset == 1) && (weighted_total == 10) && (counts[1] == 10);
+    return test1_passed && test2_passed;
 }
 
 
@@ -102,9 +112,9 @@ bool test_split_one_feature() {
 bool test_get_simple_best_feature() {
     // given:
     stats_type feature_frequencies[10] = {1, 1, 1, 1, 1,  // first row of feature-frequencies
-                                       5, 0, 0, 0, 0}; // second row of feature-frequencies
+                                          5, 0, 0, 0, 0}; // second row of feature-frequencies
     stats_type weighted_totals[2] = {10, 0};              // 10 == (1 * 0) + (1 * 1) + (1 * 2) + (1 * 3) + (1 * 4) + (1 * 5)
-                                                       //  0 == (5 * 0) + (0 * 1) + ... + (0 * 4)
+                                                          //  0 == (5 * 0) + (0 * 1) + ... + (0 * 4)
     stats_type total_count = 5;
     // when:
     colnum_type best_feature_num;
@@ -132,7 +142,8 @@ bool test_quick_partition() {
 
     // given a reverse-sorted list:
     rownum_type row_index_1[6] = {0, 1, 2, 3, 4, 5};
-    feature_type feature_array_1[6] = {15, 14, 13, 12, 11, 10};
+    feature_type feature_array_1[12] = {15, 14, 13, 12, 11, 10,  // selected feature
+                                         1,  1,  1,  1,  1,  1}; // ignored feature
     // when we split at 12.5 (the median):
     feature_type split_value = 12;
     // then we split at position 3 to get feature order [10, 11, 12   |   13, 14, 15]
