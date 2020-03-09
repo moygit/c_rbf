@@ -6,7 +6,6 @@
 #include <stdlib.h>
 
 #define NUM_TREES 20
-#define LEAF_SIZE 8
 #define NUM_BITS 32  // we want to store some shorts but also some ints, so need 4 bytes
 #define HIGH_BIT 31  // low bit is 0, high bit is 15
 #define HIGH_BIT_1 (1 << HIGH_BIT)
