@@ -320,9 +320,7 @@ void print_time(char *msg) {
 
 static RandomBinaryTree *train_one_tree(feature_type *feat_array, RbfConfig *config) {
     RandomBinaryTree *tree = create_rbt(config);
-    print_time("starting tree");
     calculate_one_node(tree, feat_array, config, 0, config->num_rows, 0, 0);
-    print_time("finished tree");
     return tree;
 }
 
@@ -342,6 +340,7 @@ feature_type *transpose(feature_type *input, size_t rows, size_t cols) {
 
 
 RandomBinaryForest *train_forest(feature_type *feat_array, RbfConfig *config) {
+    print_time("start training");
     RandomBinaryForest *forest = (RandomBinaryForest *) malloc(sizeof(RandomBinaryForest));
     if (!forest) {
         die_alloc_err("train_forest", "forest");
@@ -352,5 +351,6 @@ RandomBinaryForest *train_forest(feature_type *feat_array, RbfConfig *config) {
     for (size_t i = 0; i < config->num_trees; i++) {
         forest->trees[i] = *train_one_tree(feat_array, config);
     }
+    print_time("finish training");
     return forest;
 }
