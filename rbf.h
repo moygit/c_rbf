@@ -13,11 +13,11 @@
 
 
 // typedef these so they're easier to change if ever needed
-typedef char feature_type;
-typedef uint32_t rownum_type;
-typedef uint32_t colnum_type;
-typedef uint32_t stats_type;
-typedef size_t treeindex_type;
+typedef uint8_t feature_type;   // HAS TO BE AN UNSIGNED TYPE!
+typedef uint32_t rownum_type;   // probably has to be an unsigned type as well
+typedef uint32_t colnum_type;   // probably has to be an unsigned type as well
+typedef uint32_t stats_type;    // probably has to be an unsigned type as well
+typedef size_t treeindex_type;  // probably has to be an unsigned type as well
 
 
 typedef struct {
