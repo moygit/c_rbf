@@ -30,6 +30,13 @@
 #include "_rbf_train.h"
 
 
+
+void print_array(int32_t *arr, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        printf("%d ", arr[i]);
+    }
+}
+
 // Call when *alloc returns null
 static void die_alloc_err(char *func_name, char *vars) {
     fprintf(stderr, "fatal error: function %s, allocating memory for %s\n", func_name, vars);
@@ -73,18 +80,25 @@ void feature_column_to_bins(rownum_type *row_index, feature_type feat_array[],
 
 // Select a random subset of features and get the frequencies for those features.
 // Ugly to do two things here but ends up cleaner from a memory-management perspective.
-void select_random_features_and_get_frequencies(rownum_type *row_index, feature_type *feat_array,
+
+colnum_type pos = -1;
+colnum_type get_random_feature(colnum_type num_features) {
+    //pos = ((pos + 1) % num_features);
+    //return pos;
+    return (colnum_type) (rand() % num_features);
+}
+
+void select_random_features_and_get_frequencies(rownum_type *row_index, feature_type *feat_array, bool *feats_already_selected,
         RbfConfig *cfg, rownum_type index_start, rownum_type index_end,
         // returns:
         colnum_type *ret_feat_subset, stats_type *ret_feat_freqs, stats_type *ret_feat_weighted_totals) {
-    bool *feats_already_selected = (bool *) calloc(sizeof(bool), cfg->num_features);
     if (!feats_already_selected) {
         die_alloc_err("select_random_features_and_get_frequencies", "feats_already_selected");
     }
     for (colnum_type i = 0; i < cfg->num_features_to_compare; i++) {
-        colnum_type feat_num = (colnum_type) (rand() % cfg->num_features);
+        colnum_type feat_num = (colnum_type) (get_random_feature(cfg->num_features));
         while (feats_already_selected[(size_t) feat_num]) {
-            feat_num = (colnum_type) (rand() % cfg->num_features);
+            feat_num = get_random_feature(cfg->num_features);
         }
         feats_already_selected[feat_num] = true;
         ret_feat_subset[i] = feat_num;
@@ -92,7 +106,6 @@ void select_random_features_and_get_frequencies(rownum_type *row_index, feature_
                                feat_num, cfg->num_rows, index_start, index_end,
                                &(ret_feat_freqs[i * NUM_CHARS]), &(ret_feat_weighted_totals[i]));
     }
-    free(feats_already_selected);
 }
 
 
@@ -207,25 +220,30 @@ static void _split_node(rownum_type *row_index, feature_type *feat_array, RbfCon
         rownum_type index_start, rownum_type index_end,
         // returns:
         colnum_type *best_feat_num, feature_type *best_feat_split_val, rownum_type *split_pos) {
-    colnum_type *feat_subset = (colnum_type *) calloc(sizeof(colnum_type), cfg->num_features_to_compare);
-    stats_type *feat_freqs = (stats_type *) calloc(sizeof(stats_type), cfg->num_features_to_compare * NUM_CHARS);
-    stats_type *weighted_totals = (stats_type *) calloc(sizeof(stats_type), cfg->num_features_to_compare);
-    if (!feat_subset || !feat_freqs || !weighted_totals) {
-        die_alloc_err("_split_node", "feat_subset || feat_freqs || weighted_totals");
-    }
-    colnum_type _best_feat_index;
+    bool *feats_already_selected = (bool *) calloc(sizeof(bool), cfg->num_features);
+    *split_pos = index_start;
+    for (int attempt_num = 0; (attempt_num < 3) && ((*split_pos == index_start) || (*split_pos == index_end)); attempt_num++) {
+        colnum_type *feat_subset = (colnum_type *) calloc(sizeof(colnum_type), cfg->num_features_to_compare);
+        stats_type *feat_freqs = (stats_type *) calloc(sizeof(stats_type), cfg->num_features_to_compare * NUM_CHARS);
+        stats_type *weighted_totals = (stats_type *) calloc(sizeof(stats_type), cfg->num_features_to_compare);
+        if (!feat_subset || !feat_freqs || !weighted_totals) {
+            die_alloc_err("_split_node", "feat_subset || feat_freqs || weighted_totals");
+        }
+        colnum_type _best_feat_index;
 
-    select_random_features_and_get_frequencies(row_index, feat_array,
-            cfg, index_start, index_end,
-            feat_subset, feat_freqs, weighted_totals);
-    get_simple_best_feature(feat_freqs, cfg->num_features_to_compare, weighted_totals, index_end - index_start,
-            &_best_feat_index, best_feat_split_val);
-    *best_feat_num = feat_subset[_best_feat_index];
-    // return values:
-    *split_pos = quick_partition(row_index, feat_array, cfg->num_rows, index_start, index_end, *best_feat_num, *best_feat_split_val);
-    free(feat_subset);
-    free(feat_freqs);
-    free(weighted_totals);
+        select_random_features_and_get_frequencies(row_index, feat_array, feats_already_selected,
+                cfg, index_start, index_end,
+                feat_subset, feat_freqs, weighted_totals);
+        get_simple_best_feature(feat_freqs, cfg->num_features_to_compare, weighted_totals, index_end - index_start,
+                &_best_feat_index, best_feat_split_val);
+        *best_feat_num = feat_subset[_best_feat_index];
+        // return values:
+        *split_pos = quick_partition(row_index, feat_array, cfg->num_rows, index_start, index_end, *best_feat_num, *best_feat_split_val);
+        free(feat_subset);
+        free(feat_freqs);
+        free(weighted_totals);
+    }
+    free(feats_already_selected);
     return;
 }
 
@@ -338,8 +356,8 @@ feature_type *transpose(feature_type *input, size_t rows, size_t cols) {
     return output;
 }
 
-
 RandomBinaryForest *train_forest(feature_type *feat_array, RbfConfig *config) {
+    srand(2719);
     print_time("start training");
     RandomBinaryForest *forest = (RandomBinaryForest *) malloc(sizeof(RandomBinaryForest));
     if (!forest) {
@@ -352,5 +370,11 @@ RandomBinaryForest *train_forest(feature_type *feat_array, RbfConfig *config) {
         forest->trees[i] = *train_one_tree(feat_array, config);
     }
     print_time("finish training");
+//printf("trees[0].treeFirst: ");
+//print_array(forest->trees[0].tree_first, 1 << config->tree_depth);
+//printf("\n");
+//printf("trees[0].treeSecond: ");
+//print_array(forest->trees[0].tree_second, 1 << config->tree_depth);
+//printf("\n");
     return forest;
 }

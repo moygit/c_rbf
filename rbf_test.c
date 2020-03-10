@@ -48,16 +48,17 @@ bool test_feature_column_to_bins() {
 bool test_select_random_features_and_get_frequencies() {
     // given:
     srand(2); // ensures we select feature 0
+    bool selected[2] = {false, false};
     rownum_type row_index[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     feature_type feature_array[20] = {0, 0, 5, 5, 5, 5, 7, 7, 7, 7,
                                       1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     colnum_type num_features = 2, num_features_to_compare = 1;
-    RbfConfig config = {0, 0, 0, 10, 2, 1};
+    RbfConfig config = {0, 0, 0, 10, num_features, num_features_to_compare};
     // when:
     colnum_type feature_subset;
     stats_type *counts = (stats_type *) calloc(sizeof(stats_type), 1 * NUM_CHARS);
     stats_type weighted_total = 0;
-    select_random_features_and_get_frequencies(row_index, feature_array, &config, 0, 10, &feature_subset, counts, &weighted_total);
+    select_random_features_and_get_frequencies(row_index, feature_array, selected, &config, 0, 10, &feature_subset, counts, &weighted_total);
     // then:
     stats_type expected_counts[8] = {2, 0, 0, 0, 0, 4, 0, 4};
     bool test1_passed = (feature_subset == 0)
@@ -66,8 +67,9 @@ bool test_select_random_features_and_get_frequencies() {
                          &&  _test_array_seg_eq_val(counts, 8, NUM_CHARS, 0);
 
     srand(1); // ensures we select feature 1
+    bool selected_2[2] = {false, false};
     weighted_total = 0;
-    select_random_features_and_get_frequencies(row_index, feature_array, &config, 0, 10, &feature_subset, counts, &weighted_total);
+    select_random_features_and_get_frequencies(row_index, feature_array, selected_2, &config, 0, 10, &feature_subset, counts, &weighted_total);
     bool test2_passed = (feature_subset == 1) && (weighted_total == 10) && (counts[1] == 10);
     return test1_passed && test2_passed;
 }
