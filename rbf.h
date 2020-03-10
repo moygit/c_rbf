@@ -8,16 +8,16 @@
 #define NUM_TREES 20
 #define NUM_BITS 32  // we want to store some shorts but also some ints, so need 4 bytes
 #define HIGH_BIT 31  // low bit is 0, high bit is 15
-#define HIGH_BIT_1 (1 << HIGH_BIT)
+#define HIGH_BIT_1 (-1 << HIGH_BIT)
 #define NUM_CHARS 256
 
 
 // typedef these so they're easier to change if ever needed
 typedef uint8_t feature_type;   // HAS TO BE AN UNSIGNED TYPE!
-typedef uint32_t rownum_type;   // probably has to be an unsigned type as well
-typedef uint32_t colnum_type;   // probably has to be an unsigned type as well
-typedef uint32_t stats_type;    // probably has to be an unsigned type as well
-typedef size_t treeindex_type;  // probably has to be an unsigned type as well
+typedef int32_t rownum_type;    // HAS TO BE A SIGNED TYPE! (see "Ugliness alert" below)
+typedef int32_t colnum_type;
+typedef int32_t stats_type;
+typedef size_t treeindex_type;
 
 
 typedef struct {
