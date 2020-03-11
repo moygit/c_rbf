@@ -30,13 +30,6 @@
 #include "_rbf_train.h"
 
 
-
-void print_array(int32_t *arr, size_t count) {
-    for (size_t i = 0; i < count; i++) {
-        printf("%d ", arr[i]);
-    }
-}
-
 // Call when *alloc returns null
 static void die_alloc_err(char *func_name, char *vars) {
     fprintf(stderr, "fatal error: function %s, allocating memory for %s\n", func_name, vars);
@@ -78,16 +71,12 @@ void feature_column_to_bins(rownum_type *row_index, feature_type feat_array[],
 }
 
 
-// Select a random subset of features and get the frequencies for those features.
-// Ugly to do two things here but ends up cleaner from a memory-management perspective.
-
-colnum_type pos = -1;
 colnum_type get_random_feature(colnum_type num_features) {
-    //pos = ((pos + 1) % num_features);
-    //return pos;
     return (colnum_type) (rand() % num_features);
 }
 
+// Select a random subset of features and get the frequencies for those features.
+// Ugly to do two things here but ends up cleaner from a memory-management perspective.
 void select_random_features_and_get_frequencies(rownum_type *row_index, feature_type *feat_array, bool *feats_already_selected,
         RbfConfig *cfg, rownum_type index_start, rownum_type index_end,
         // returns:
@@ -370,11 +359,5 @@ RandomBinaryForest *train_forest(feature_type *feat_array, RbfConfig *config) {
         forest->trees[i] = *train_one_tree(feat_array, config);
     }
     print_time("finish training");
-//printf("trees[0].treeFirst: ");
-//print_array(forest->trees[0].tree_first, 1 << config->tree_depth);
-//printf("\n");
-//printf("trees[0].treeSecond: ");
-//print_array(forest->trees[0].tree_second, 1 << config->tree_depth);
-//printf("\n");
     return forest;
 }

@@ -26,7 +26,7 @@ void query_tree(RandomBinaryForest *forest, size_t tree_num, feature_type *point
     tree_result_counts[tree_num] = index_end - index_start;
     tree_results[tree_num] = malloc(sizeof(rownum_type) * (index_end - index_start));
     for (rownum_type rownum = 0; rownum < index_end - index_start; rownum++) {
-        tree_results[tree_num][rownum] = forest->trees[tree_num].row_index[rownum];        
+        tree_results[tree_num][rownum] = forest->trees[tree_num].row_index[index_start + rownum];
     }
 	return;
 }
