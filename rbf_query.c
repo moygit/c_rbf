@@ -39,6 +39,7 @@ RbfResults *query_forest(RandomBinaryForest *forest, feature_type *point, size_t
     rownum_type **tree_results = malloc(sizeof(rownum_type*) * forest->config->num_trees);
     size_t *tree_result_counts = malloc(sizeof(size_t) * forest->config->num_trees);
 
+    #pragma omp parallel for
     for (size_t i = 0; i < forest->config->num_trees; i++) {
         query_tree(forest, i, point, tree_results, tree_result_counts);
     }
