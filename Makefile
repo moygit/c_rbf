@@ -1,3 +1,5 @@
+CFLAGS=-Wall -Werror -fpic -fopenmp -O3 -march=native
+LDFLAGS=-fopenmp
 TEST_LIB_DIRS=-L.
 TEST_LIBS=-lcheck -lrbf
 
@@ -12,10 +14,10 @@ clean:
 # Main:
 
 %.o: %.c rbf_utils.c
-	gcc -c -Wall -Werror -fpic -fopenmp $^
+	gcc -c $(CFLAGS) $^
 
 librbf.so: rbf_utils.o rbf_train.o rbf_io.o rbf_query.o
-	gcc -shared -fopenmp $^ -o $@
+	gcc -shared $(LDFLAGS) $^ -o $@
 
 doc:
 	pandoc ctypes2.md > ctypes2.html
@@ -35,5 +37,7 @@ rbf_test_aux.c: rbf_test.check
 	checkmk $^ >$@
 
 c_test: rbf_test.c rbf_test_aux.c librbf.so
+	# TODO:
+	# gcc $(CFLAGS) $(LDFLAGS) $(TEST_LIB_DIRS) $(TEST_LIBS) $^ -o $@
 	gcc -fopenmp $^ $(TEST_LIB_DIRS) $(TEST_LIBS) -o $@
 	LD_LIBRARY_PATH=${LD_LIBRATH_PATH}:. ./$@
