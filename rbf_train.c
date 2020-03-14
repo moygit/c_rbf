@@ -28,13 +28,8 @@
 
 #include "rbf.h"
 #include "_rbf_train.h"
+#include "_rbf_utils.h"
 
-
-// Call when *alloc returns null
-static void die_alloc_err(char *func_name, char *vars) {
-    fprintf(stderr, "fatal error: function %s, allocating memory for %s\n", func_name, vars);
-    exit(EXIT_FAILURE);
-}
 
 /*
  * Convert a feature column, e.g. [0, 1, 1, 1, 2, 2] into bins, e.g. [1 (for 0), 3 (for 1), 2 (for 2)].
@@ -331,19 +326,6 @@ static RandomBinaryTree *train_one_tree(feature_type *feat_array, RbfConfig *con
     return tree;
 }
 
-
-feature_type *transpose(feature_type *input, size_t rows, size_t cols) {
-    feature_type *output = (feature_type *) malloc(sizeof(feature_type) * rows * cols);
-    if (!output) {
-        die_alloc_err("transpose", "output");
-    }
-    for (size_t i = 0; i < rows; i++) {
-        for (size_t j = 0; j < cols; j++) {
-            output[j * rows + i] = input[i * cols + j];
-        }
-    }
-    return output;
-}
 
 RandomBinaryForest *train_forest(feature_type *feat_array, RbfConfig *config) {
     srand(2719);

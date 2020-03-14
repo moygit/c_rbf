@@ -1,8 +1,7 @@
 #include <assert.h>
 #include "rbf.h"
+#include "_rbf_utils.h"
 
-
-#include <stdio.h>
 
 // A "point" is a feature-array. Search for one point in this tree.
 void query_tree(RandomBinaryForest *forest, size_t tree_num, feature_type *point, rownum_type **tree_results, size_t *tree_result_counts) {
@@ -20,21 +19,26 @@ void query_tree(RandomBinaryForest *forest, size_t tree_num, feature_type *point
 		}
         first = forest->trees[tree_num].tree_first[array_pos];
     }
+
 	// found a leaf; get values and return
 	rownum_type index_start = HIGH_BIT_1 ^ first;
 	rownum_type index_end = HIGH_BIT_1 ^ (forest->trees[tree_num].tree_second[array_pos]);
     tree_result_counts[tree_num] = index_end - index_start;
     tree_results[tree_num] = malloc(sizeof(rownum_type) * (index_end - index_start));
+    if (!tree_results[tree_num]) {
+        die_alloc_err("query_tree", "tree_results[tree_num]");
+    }
     for (rownum_type rownum = 0; rownum < index_end - index_start; rownum++) {
         tree_results[tree_num][rownum] = forest->trees[tree_num].row_index[index_start + rownum];
     }
 	return;
 }
 
+
 // A "point" is a feature-array. Search for one point in this forest.
 // Return indices into the training feature-array (since the caller/wrapper might have
 // different things they want to do with this).
-RbfResults *query_forest(RandomBinaryForest *forest, feature_type *point, size_t point_dimension) {
+RbfResults *query_forest_all_results(RandomBinaryForest *forest, feature_type *point, size_t point_dimension) {
     assert(point_dimension == forest->config->num_features);
     rownum_type **tree_results = malloc(sizeof(rownum_type*) * forest->config->num_trees);
     size_t *tree_result_counts = malloc(sizeof(size_t) * forest->config->num_trees);

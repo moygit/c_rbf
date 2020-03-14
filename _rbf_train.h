@@ -1,3 +1,6 @@
+// Everything here is for local use only.
+// For exported objects please see rbf.h.
+
 #ifndef __RBF_TRAIN_H__
 #define __RBF_TRAIN_H__
 

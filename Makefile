@@ -11,10 +11,10 @@ clean:
 
 # Main:
 
-%.o: %.c
+%.o: %.c rbf_utils.c
 	gcc -c -Wall -Werror -fpic -fopenmp $^
 
-librbf.so: rbf_train.o rbf_io.o rbf_query.o
+librbf.so: rbf_utils.o rbf_train.o rbf_io.o rbf_query.o
 	gcc -shared -fopenmp $^ -o $@
 
 doc:

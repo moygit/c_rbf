@@ -66,9 +66,11 @@ typedef struct {
 
 RandomBinaryForest *train_forest(feature_type *feature_array, RbfConfig *config);
 
-RbfResults *query_forest(RandomBinaryForest *forest, feature_type *point, size_t point_dimension);
+RbfResults *query_forest_all_results(RandomBinaryForest *forest, feature_type *point, size_t point_dimension);
 
 feature_type *transpose(feature_type *input, size_t rows, size_t cols);
+
+int l2_square_dist(feature_type *v1, feature_type *v2, size_t vec_size);
 
 // Used for debugging
 void print_time(char *msg);

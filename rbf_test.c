@@ -229,7 +229,7 @@ bool test_query() {
     feature_type point[] = {6};
 
     // when
-    RbfResults *results = query_forest(&forest, point, num_features);
+    RbfResults *results = query_forest_all_results(&forest, point, num_features);
 
     // then
     return (results->tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
