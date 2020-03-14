@@ -24,7 +24,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "rbf.h"
 #include "_rbf_train.h"
@@ -307,16 +306,6 @@ static RandomBinaryTree *create_rbt(RbfConfig *config) {
     tree->num_leaves = 0;
 
     return tree;
-}
-
-
-void print_time(char *msg) {
-    struct timespec t;
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    double count;
-    count = t.tv_sec * 1e9;
-    count = (count + t.tv_nsec) * 1e-9;
-    printf("%f: %s\n", count, msg);
 }
 
 
