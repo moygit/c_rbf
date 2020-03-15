@@ -1,9 +1,20 @@
+#include <apr_pools.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include "rbf.h"
 #include "_rbf_utils.h"
+
+
+extern apr_pool_t *memory_pool;
+
+
+// Initial setup (memory etc).
+void rbf_init() {
+    apr_initialize();
+    apr_pool_create_unmanaged(&memory_pool);
+}
 
 
 // Call when *alloc returns null

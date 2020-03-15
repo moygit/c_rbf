@@ -5,9 +5,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define NUM_TREES 20
 #define NUM_BITS 32  // we want to store some shorts but also some ints, so need 4 bytes
-#define HIGH_BIT 31  // low bit is 0, high bit is 15
+#define HIGH_BIT (NUM_BITS - 1)  // low bit is 0, high bit is 15
 #define HIGH_BIT_1 (-1 << HIGH_BIT)
 #define NUM_CHARS 256
 
@@ -62,11 +61,23 @@ typedef struct {
 typedef struct {
     rownum_type **tree_results;
     size_t *tree_result_counts;
+    size_t total_count;
 } RbfResults;
+
+
+void rbf_init();
 
 RandomBinaryForest *train_forest(feature_type *feature_array, RbfConfig *config);
 
-RbfResults *query_forest_all_results(RandomBinaryForest *forest, feature_type *point, size_t point_dimension);
+RbfResults *query_forest_all_results(const RandomBinaryForest *forest, const feature_type *point,
+        const size_t point_dimension);
+RbfResults *batch_query_forest_all_results(const RandomBinaryForest *forest, const feature_type *points,
+        const size_t point_dimension, const size_t num_points);
+
+rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *point,
+        const size_t point_dimension, size_t *count);
+rownum_type **batch_query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *points,
+        const size_t point_dimension, size_t num_points, size_t *counts);
 
 feature_type *transpose(feature_type *input, size_t rows, size_t cols);
 

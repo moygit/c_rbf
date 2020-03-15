@@ -5,10 +5,10 @@ import ctypes
 rbf = ctypes.CDLL("librbf.so")
 
 
-feature_type = ctypes.c_char
-rownum_type = ctypes.c_uint32
-colnum_type = ctypes.c_uint32
-stats_type = ctypes.c_uint32
+feature_type = ctypes.c_uint8   # but note that the tranpose and query functions take type ctypes.c_char because we want to pass byte-strings
+rownum_type = ctypes.c_int32
+colnum_type = ctypes.c_int32
+stats_type = ctypes.c_int32
 treeindex_type = ctypes.c_size_t
 
 
@@ -50,20 +50,41 @@ class RbfConfig(ctypes.Structure):
 rbf_type = ctypes.c_void_p
 
 class RbfResults(ctypes.Structure):
-    _fields_ = [("tree_results", ctypes.POINTER(ctypes.POINTER(rownum_type))), ("tree_results_counts", ctypes.POINTER(ctypes.c_size_t))]
+    _fields_ = [("tree_results", ctypes.POINTER(ctypes.POINTER(rownum_type))),
+                ("tree_results_counts", ctypes.POINTER(ctypes.c_size_t)),
+                ("total_count", ctypes.c_size_t)]
 
 
 transpose = rbf.__getattr__("transpose")
 transpose.restype = ctypes.POINTER(feature_type)
-transpose.argtypes = [ctypes.POINTER(feature_type), ctypes.c_size_t, ctypes.c_size_t]
+transpose.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.c_size_t, ctypes.c_size_t]
 
 train_forest = rbf.__getattr__("train_forest")
 train_forest.restype = rbf_type
 train_forest.argtypes = [ctypes.POINTER(feature_type), ctypes.POINTER(RbfConfig)]
 
-query_forest = rbf.__getattr__("query_forest")
-query_forest.restype = ctypes.POINTER(RbfResults)
-query_forest.argtypes = [rbf_type, ctypes.POINTER(feature_type), ctypes.c_size_t]
+query_forest_all_results = rbf.__getattr__("query_forest_all_results")
+query_forest_all_results.restype = ctypes.POINTER(RbfResults)
+query_forest_all_results.argtypes = [rbf_type, ctypes.POINTER(ctypes.c_char), ctypes.c_size_t]
+
+batch_query_forest_all_results = rbf.__getattr__("batch_query_forest_all_results")
+batch_query_forest_all_results.restype = ctypes.POINTER(RbfResults)
+batch_query_forest_all_results.argtypes = [rbf_type, ctypes.POINTER(ctypes.c_char), ctypes.c_size_t, ctypes.c_size_t]
+
+query_forest_dedup_results = rbf.__getattr__("query_forest_dedup_results")
+query_forest_dedup_results.restype = ctypes.POINTER(rownum_type)
+query_forest_dedup_results.argtypes = [rbf_type, ctypes.POINTER(ctypes.c_char), ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t)]
+
+batch_query_forest_dedup_results = rbf.__getattr__("batch_query_forest_dedup_results")
+batch_query_forest_dedup_results.restype = ctypes.POINTER(ctypes.POINTER(rownum_type))
+batch_query_forest_dedup_results.argtypes = [rbf_type, ctypes.POINTER(ctypes.c_char), ctypes.c_size_t, ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t)]
+
+l2_square_dist = rbf.__getattr__("l2_square_dist")
+l2_square_dist.restype = ctypes.c_int
+# TODO: fix the type issues here: they should both be of the same type.
+# Works right now because you're testing with arg1 == features (training feature array), which has been returned from `transpose` so is of the right type
+# In real use it'll likely be of the same type as arg2 (which is right now test_features, so of type `bytes`)
+l2_square_dist.argtypes = [ctypes.POINTER(feature_type), ctypes.POINTER(ctypes.c_char), ctypes.c_size_t]
 
 
 if __name__ == '__main__':

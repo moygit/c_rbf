@@ -214,6 +214,8 @@ bool test_query() {
     //   right child:
     //     tree_first[2]: (leaf) 0 ("aaa")  (actually HIGH_BIT_1 ^ 0)
     //     tree_second[2]: (leaf) 1         (actually HIGH_BIT_1 ^ 1)
+    rbf_init();
+
     rownum_type row_index[] = {0, 1};
     int num_rows = 2;
     rownum_type tree_first[] = {0, HIGH_BIT_1 ^ 1, HIGH_BIT_1 ^ 0};
@@ -230,10 +232,14 @@ bool test_query() {
 
     // when
     RbfResults *results = query_forest_all_results(&forest, point, num_features);
+    size_t count;
+    rownum_type *deduped_results = query_forest_dedup_results(&forest, point, num_features, &count);
 
     // then
     return (results->tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
             && (results->tree_result_counts[1] == 1)
             && (results->tree_results[0][0] == 0)       // and the result is "aaa"
-            && (results->tree_results[1][0] == 0);
+            && (results->tree_results[1][0] == 0)
+            && (count == 1)
+            && (deduped_results[0] == 0);
 }

@@ -1,5 +1,5 @@
-CFLAGS=-Wall -Werror -fpic -fopenmp -O3 -march=native
-LDFLAGS=-fopenmp
+CFLAGS=-Wall -Werror -fpic -fopenmp -O3 -march=native -I/usr/include/apr-1
+LDFLAGS=-fopenmp -lapr-1
 TEST_LIB_DIRS=-L.
 TEST_LIBS=-lcheck -lrbf
 
@@ -37,7 +37,7 @@ rbf_test_aux.c: rbf_test.check
 	checkmk $^ >$@
 
 c_test: rbf_test.c rbf_test_aux.c librbf.so
-	# TODO:
+	# TODO: use full CFLAGS
 	# gcc $(CFLAGS) $(LDFLAGS) $(TEST_LIB_DIRS) $(TEST_LIBS) $^ -o $@
 	gcc -fopenmp $^ $(TEST_LIB_DIRS) $(TEST_LIBS) -o $@
 	LD_LIBRARY_PATH=${LD_LIBRATH_PATH}:. ./$@
