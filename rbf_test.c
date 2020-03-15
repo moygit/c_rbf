@@ -229,17 +229,31 @@ bool test_query() {
     RandomBinaryForest forest = {&config, trees};
 
     feature_type point[] = {6};
+    feature_type two_points[] = {6, 0}; // 1st point has one feature, 6, 2nd point has one feature, 0
+    size_t num_points = 2;
 
     // when
     RbfResults *results = query_forest_all_results(&forest, point, num_features);
-    size_t count;
+    RbfResults *batch_results = batch_query_forest_all_results(&forest, two_points, num_features, num_points);
+    size_t count, **batch_counts;
     rownum_type *deduped_results = query_forest_dedup_results(&forest, point, num_features, &count);
+    rownum_type **batch_deduped_results = batch_query_forest_dedup_results(&forest, two_points, num_features, num_points, batch_counts);
 
     // then
-    return (results->tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
-            && (results->tree_result_counts[1] == 1)
-            && (results->tree_results[0][0] == 0)       // and the result is "aaa"
-            && (results->tree_results[1][0] == 0)
-            && (count == 1)
-            && (deduped_results[0] == 0);
+    bool all_result = (results->tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
+                       && (results->tree_result_counts[1] == 1)
+                       && (results->tree_results[0][0] == 0)       // and the result is "aaa"
+                       && (results->tree_results[1][0] == 0);
+    bool dedup_result = (count == 1) && (deduped_results[0] == 0);
+    bool batch_all_result = (batch_results[0].tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
+                             && (batch_results[0].tree_result_counts[1] == 1)
+                             && (batch_results[0].tree_results[0][0] == 0)       // and the result is "aaa"
+                             && (batch_results[0].tree_results[1][0] == 0)
+                             && (batch_results[1].tree_result_counts[0] == 1)    // Each tree returns exactly 1 result
+                             && (batch_results[1].tree_result_counts[1] == 1)
+                             && (batch_results[1].tree_results[0][0] == 1)       // and the result is "abc"
+                             && (batch_results[1].tree_results[1][0] == 1);
+    bool batch_dedup_result = ((*batch_counts)[0] == 1) && (batch_deduped_results[0][0] == 0)       // only one result, "aaa"
+                              && ((*batch_counts)[1] == 1) && (batch_deduped_results[1][0] == 1);   // only one result, "abcd"
+    return all_result && dedup_result && batch_all_result && batch_dedup_result;
 }

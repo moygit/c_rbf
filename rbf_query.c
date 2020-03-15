@@ -101,13 +101,13 @@ rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const 
 
 
 rownum_type **batch_query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *points,
-        const size_t point_dimension, size_t num_points, size_t *counts) {
+        const size_t point_dimension, size_t num_points, size_t **counts) {
     assert(point_dimension == forest->config->num_features);
     rownum_type **all_results = malloc(sizeof(rownum_type*) * num_points);
-    counts = malloc(sizeof(size_t) * num_points);
+    *counts = malloc(sizeof(size_t) * num_points);
     #pragma omp parallel for
     for (size_t i = 0; i < num_points; i++) {
-        all_results[i] = query_forest_dedup_results(forest, &(points[i * point_dimension]), point_dimension, &(counts[i]));
+        all_results[i] = query_forest_dedup_results(forest, &(points[i * point_dimension]), point_dimension, &((*counts)[i]));
     }
     return all_results;
 }

@@ -77,7 +77,7 @@ RbfResults *batch_query_forest_all_results(const RandomBinaryForest *forest, con
 rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *point,
         const size_t point_dimension, size_t *count);
 rownum_type **batch_query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *points,
-        const size_t point_dimension, size_t num_points, size_t *counts);
+        const size_t point_dimension, size_t num_points, size_t **counts);
 
 feature_type *transpose(feature_type *input, size_t rows, size_t cols);
 
