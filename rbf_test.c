@@ -305,8 +305,6 @@ bool test_query_sorted() {
     rownum_type **results = batch_query_forest_dedup_results_sorted(&forest, two_points, ref_points, num_features, num_points, l2_compare, counts);
 
     // then
-printf("(*counts)[0]: %d\n", (*counts)[0]);
-printf("(*counts)[1]: %d\n", (*counts)[1]);
     return ((*counts)[0] == 4)
             && (results[0][0] == 5)     // see comments in defintion
             && (results[0][1] == 6)     // of `ref_points` above

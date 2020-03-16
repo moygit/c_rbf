@@ -5,9 +5,6 @@
 #include "_rbf_utils.h"
 
 
-extern apr_pool_t *memory_pool;
-
-
 // A "point" is a feature-array. Search for one point in this tree.
 void query_tree(const RandomBinaryForest *forest, const size_t tree_num, const feature_type *point,
                 rownum_type **tree_results, size_t *tree_result_counts) {
@@ -92,10 +89,12 @@ RbfResults *batch_query_forest_all_results(const RandomBinaryForest *forest, con
  */
 rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *point, const size_t point_dimension, size_t *count) {
     char local_true = 1;
+    apr_pool_t *thread_memory_pool;
+    apr_pool_create_unmanaged(&thread_memory_pool);
 
     // get all results, and accordingly allocate space for tracker and return
     RbfResults *all_results = query_forest_all_results(forest, point, point_dimension);
-    apr_table_t *results_seen = apr_table_make(memory_pool, all_results->total_count);
+    apr_table_t *results_seen = apr_table_make(thread_memory_pool, all_results->total_count);
     // TODO: speed/memory tradeoff here: allocating too much space right now
     rownum_type *deduped_results = malloc(sizeof(rownum_type) * all_results->total_count);
 
@@ -111,6 +110,7 @@ rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const 
         }
     }
 
+    apr_pool_destroy(thread_memory_pool);
     return deduped_results;
 }
 
@@ -127,8 +127,7 @@ rownum_type **batch_query_forest_dedup_results(const RandomBinaryForest *forest,
     assert(point_dimension == forest->config->num_features);
     rownum_type **all_results = malloc(sizeof(rownum_type*) * num_points);
     *ret_counts = malloc(sizeof(size_t) * num_points);
-    // TODO:
-    //#pragma omp parallel for    // gives errors occasionally
+    #pragma omp parallel for
     for (size_t i = 0; i < num_points; i++) {
         all_results[i] = query_forest_dedup_results(forest, &(points[i * point_dimension]), point_dimension, &((*ret_counts)[i]));
     }
