@@ -77,11 +77,16 @@ RbfResults *batch_query_forest_all_results(const RandomBinaryForest *forest, con
 rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *point,
         const size_t point_dimension, size_t *count);
 rownum_type **batch_query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *points,
-        const size_t point_dimension, size_t num_points, size_t **counts);
+        const size_t point_dimension, const size_t num_points, size_t **counts);
+
+rownum_type **batch_query_forest_dedup_results_sorted(const RandomBinaryForest *forest, feature_type *points,
+        feature_type *ref_points, const size_t point_dimension, size_t num_points,
+        const int (*compare)(const void *, const void *),
+        size_t **ret_counts);
 
 feature_type *transpose(feature_type *input, size_t rows, size_t cols);
 
-int l2_square_dist(feature_type *v1, feature_type *v2, size_t vec_size);
+int l2_compare(const void *pre_v1, const void *pre_v2);
 
 // Used for debugging
 void print_time(char *msg);

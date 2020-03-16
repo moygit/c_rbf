@@ -52,6 +52,14 @@ int l2_square_dist(feature_type *v1, feature_type *v2, size_t vec_size) {
 }
 
 
+int l2_compare(const void *pre_v1, const void *pre_v2) {
+    results_comparison_node *v1 = (results_comparison_node *) pre_v1;
+    results_comparison_node *v2 = (results_comparison_node *) pre_v2;
+    return l2_square_dist(v1->query_point, v1->ref_point, v1->point_dimension)
+         - l2_square_dist(v2->query_point, v2->ref_point, v2->point_dimension);
+}
+
+
 void print_time(char *msg) {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);

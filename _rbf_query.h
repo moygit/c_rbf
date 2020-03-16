@@ -7,5 +7,6 @@
 #define __RBF_QUERY_H__
 
 bool test_query();
+bool test_query_sorted();
 
 #endif /* __RBF_QUERY_H__ */

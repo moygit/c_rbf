@@ -10,3 +10,4 @@
     fail_unless(test_quick_partition(), "quick_partition failure");
     fail_unless(test_transpose(), "transpose failure");
     fail_unless(test_query(), "query failure");
+    fail_unless(test_query_sorted(), "query_sorted failure");

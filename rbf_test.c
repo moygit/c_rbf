@@ -204,7 +204,8 @@ bool test_query() {
 
     // Create two identical dummy trees for testing.
     //
-    // The test tree looks like it was "trained" on bigrams of the strings "aaa" and "abc".
+    // The test tree looks like it was "trained" on 5-skip-bigrams of the strings "aaaa" and "abc"
+    // (so "aaaa"'s 0th ("aa") entry is 6 whereas "abc"'s 0th entry is 0).
     //   root node:
     //     tree_first[0]: i.e. split on the 0 feature (i.e. "aa")
     //     tree_second[0]: split-value 1
@@ -212,7 +213,7 @@ bool test_query() {
     //     tree_first[1]: (leaf) 1 ("abc")  (actually HIGH_BIT_1 ^ 1)
     //     tree_second[1]: (leaf) 2         (actualy HIGH_BIT_1 ^ 2)
     //   right child:
-    //     tree_first[2]: (leaf) 0 ("aaa")  (actually HIGH_BIT_1 ^ 0)
+    //     tree_first[2]: (leaf) 0 ("aaaa") (actually HIGH_BIT_1 ^ 0)
     //     tree_second[2]: (leaf) 1         (actually HIGH_BIT_1 ^ 1)
     rbf_init();
 
@@ -221,7 +222,8 @@ bool test_query() {
     rownum_type tree_first[] = {0, HIGH_BIT_1 ^ 1, HIGH_BIT_1 ^ 0};
     rownum_type tree_second[] = {1, HIGH_BIT_1 ^ 2, HIGH_BIT_1 ^ 1};
     int tree_size = 3;
-    RandomBinaryTree tree = {row_index, num_rows, tree_first, tree_second, tree_size, 0, 0};
+    RandomBinaryTree tree = {row_index, num_rows, tree_first, tree_second, tree_size,
+                             0, 0}; // don't care about these last two
     RandomBinaryTree trees[] = {tree, tree};
     int num_trees = 2;
     int num_features = 1;
@@ -229,7 +231,7 @@ bool test_query() {
     RandomBinaryForest forest = {&config, trees};
 
     feature_type point[] = {6};
-    feature_type two_points[] = {6, 0}; // 1st point has one feature, 6, 2nd point has one feature, 0
+    feature_type two_points[] = {6, 0}; // 1st point has one feature, 6 (for "aaaa"), 2nd point has one feature, 0 (for "abc")
     size_t num_points = 2;
 
     // when
@@ -242,18 +244,75 @@ bool test_query() {
     // then
     bool all_result = (results->tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
                        && (results->tree_result_counts[1] == 1)
-                       && (results->tree_results[0][0] == 0)       // and the result is "aaa"
+                       && (results->tree_results[0][0] == 0)       // and the result is "aaaa"
                        && (results->tree_results[1][0] == 0);
     bool dedup_result = (count == 1) && (deduped_results[0] == 0);
     bool batch_all_result = (batch_results[0].tree_result_counts[0] == 1)        // Each tree returns exactly 1 result
                              && (batch_results[0].tree_result_counts[1] == 1)
-                             && (batch_results[0].tree_results[0][0] == 0)       // and the result is "aaa"
+                             && (batch_results[0].tree_results[0][0] == 0)       // and the result is "aaaa"
                              && (batch_results[0].tree_results[1][0] == 0)
                              && (batch_results[1].tree_result_counts[0] == 1)    // Each tree returns exactly 1 result
                              && (batch_results[1].tree_result_counts[1] == 1)
                              && (batch_results[1].tree_results[0][0] == 1)       // and the result is "abc"
                              && (batch_results[1].tree_results[1][0] == 1);
-    bool batch_dedup_result = ((*batch_counts)[0] == 1) && (batch_deduped_results[0][0] == 0)       // only one result, "aaa"
+    bool batch_dedup_result = ((*batch_counts)[0] == 1) && (batch_deduped_results[0][0] == 0)       // only one result, "aaaa"
                               && ((*batch_counts)[1] == 1) && (batch_deduped_results[1][0] == 1);   // only one result, "abcd"
     return all_result && dedup_result && batch_all_result && batch_dedup_result;
+}
+
+bool test_query_sorted() {
+    // given:
+
+    // Create two identical dummy trees for testing.
+    // We're only testing the sorting here, so the goal is for the tree to return indices into
+    // some array, and then we want to check that those get sorted by distance from the query point.
+    //   root node:
+    //     tree_first[0]: i.e. split on the 0 feature
+    //     tree_second[0]: split-value 1
+    //   left child:
+    //     tree_first[1]: (leaf) 0          (act0ally HIGH_BIT_1 ^ 0)
+    //     tree_second[1]: (leaf) 2         (actualy HIGH_BIT_1 ^ 2)
+    //   right child:
+    //     tree_first[2]: (leaf) 3          (actually HIGH_BIT_1 ^ 3)
+    //     tree_second[2]: (leaf) 7         (actually HIGH_BIT_1 ^ 7)
+    rbf_init();
+
+    rownum_type row_index[] = {0, 1, 2, 3, 4, 5, 6};
+    feature_type ref_points[] = {1, 2, 0, 9, 8, 6, 5};
+                                       // ^^^^^^^^^^ for first point (6), want these guys, sorted in order of L2 distance from 6.
+                                       // so we should get 5, 6, 4, 3 (indices of 6, 5, 8, 9)
+                              // ^^^^ for second point (0), want these guys (1, 2), sorted in order of L2 distance from 0.
+                              // so we should get 0, 1 (indices of 1, -2).
+    int num_rows = 7;
+    rownum_type tree_first[] = {0, HIGH_BIT_1 ^ 0, HIGH_BIT_1 ^ 3};
+    rownum_type tree_second[] = {1, HIGH_BIT_1 ^ 2, HIGH_BIT_1 ^ 7};
+    int tree_size = 3;
+    RandomBinaryTree tree = {row_index, num_rows, tree_first, tree_second, tree_size,
+                             0, 0}; // don't care about these last two
+    RandomBinaryTree trees[] = {tree, tree};
+    int num_trees = 2;
+    int num_features = 1;
+    RbfConfig config = {num_trees, 0, 0, 0, num_features, num_features};
+    RandomBinaryForest forest = {&config, trees};
+
+    feature_type point[] = {6};
+    feature_type two_points[] = {6, 0}; // 1st point has one feature, 6, 2nd point has one feature, 0
+    size_t num_points = 2;
+
+    // when
+    RbfResults *batch_results = batch_query_forest_all_results(&forest, two_points, num_features, num_points);
+    size_t **counts;
+    rownum_type **results = batch_query_forest_dedup_results_sorted(&forest, two_points, ref_points, num_features, num_points, l2_compare, counts);
+
+    // then
+printf("(*counts)[0]: %d\n", (*counts)[0]);
+printf("(*counts)[1]: %d\n", (*counts)[1]);
+    return ((*counts)[0] == 4)
+            && (results[0][0] == 5)     // see comments in defintion
+            && (results[0][1] == 6)     // of `ref_points` above
+            && (results[0][2] == 4)
+            && (results[0][3] == 3)
+            && ((*counts)[1] == 2)
+            && (results[1][0] == 0)
+            && (results[1][1] == 1);
 }

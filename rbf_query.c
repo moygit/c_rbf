@@ -41,9 +41,14 @@ void query_tree(const RandomBinaryForest *forest, const size_t tree_num, const f
 }
 
 
-// A "point" is a feature-array. Search for one point in this forest.
-// Return indices into the training feature-array (since the caller/wrapper might have
-// different things they want to do with this).
+/*
+ * A "point" is a feature-array. Search for one point in this forest.
+ * Return:
+ * - tree_result_counts: for each tree, a count of the number of results.
+ * - tree_results: for each tree, indices into the training feature-array
+ *                 (since the caller/wrapper might have different things they want to do with this).
+ * - total_count: total count of results from all trees
+ */
 RbfResults *query_forest_all_results(const RandomBinaryForest *forest, const feature_type *point, const size_t point_dimension) {
     assert(point_dimension == forest->config->num_features);
     rownum_type **tree_results = malloc(sizeof(rownum_type*) * forest->config->num_trees);
@@ -63,6 +68,11 @@ RbfResults *query_forest_all_results(const RandomBinaryForest *forest, const fea
 }
 
 
+/*
+ * Identical to query_forest_all_results except queries for a batch of points at a time.
+ * So: `points` is now a pointer to multiple points, not a single point.
+ * And the return is an array of RbfResults instead of a pointer to a single RbfResults object.
+ */
 RbfResults *batch_query_forest_all_results(const RandomBinaryForest *forest, const feature_type *points,
         const size_t point_dimension, const size_t num_points) {
     assert(point_dimension == forest->config->num_features);
@@ -75,6 +85,11 @@ RbfResults *batch_query_forest_all_results(const RandomBinaryForest *forest, con
 }
 
 
+/*
+ * A "point" is a feature-array. Search for one point in this forest.
+ * Return: combine and dedup result indices from all trees. Results are indices into the training
+ *         feature-array (since the caller/wrapper might have different things they want to do with this).
+ */
 rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *point, const size_t point_dimension, size_t *count) {
     char local_true = 1;
 
@@ -100,14 +115,84 @@ rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const 
 }
 
 
+/*
+ * Identical to query_forest_dedup_results except queries for a batch of points at a time.
+ * So: `points` is now a pointer to multiple points, not a single point.
+ * Returns an array of arrays. Param return: ret_counts array of counts.
+ * Outer array contains num_points results; each result is an array.
+ * The ith of these arrays contains ret_counts[i]-many indices.
+ */
 rownum_type **batch_query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *points,
-        const size_t point_dimension, size_t num_points, size_t **counts) {
+        const size_t point_dimension, const size_t num_points, size_t **ret_counts) {
     assert(point_dimension == forest->config->num_features);
     rownum_type **all_results = malloc(sizeof(rownum_type*) * num_points);
-    *counts = malloc(sizeof(size_t) * num_points);
+    *ret_counts = malloc(sizeof(size_t) * num_points);
+    // TODO:
+    //#pragma omp parallel for    // gives errors occasionally
+    for (size_t i = 0; i < num_points; i++) {
+        all_results[i] = query_forest_dedup_results(forest, &(points[i * point_dimension]), point_dimension, &((*ret_counts)[i]));
+    }
+    return all_results;
+}
+
+
+// Internal use only.
+// Problem: we want to qsort indices into the row-index array by distance of each indexed reference point
+// from the query point. To use qsort we'll have to carry some metadata along with each index.
+// This function builds structs containing the needed metadata (index, query point, reference point,
+// and the two points' dimensions).
+results_comparison_node *make_comp_nodes(rownum_type *unsorted_results, size_t count,
+        feature_type *ref_points, feature_type *point, size_t point_dimension) {
+    results_comparison_node *comp_nodes = malloc(sizeof(results_comparison_node) * count);
+    for (size_t i = 0; i < count; i++) {
+        comp_nodes[i].query_point = point;
+        comp_nodes[i].ref_point = &(ref_points[unsorted_results[i] * point_dimension]);
+        comp_nodes[i].ref_index = unsorted_results[i];
+        comp_nodes[i].point_dimension = point_dimension;
+    }
+    return comp_nodes;
+}
+
+
+/*
+ * A "point" is a feature-array. Search for one point in this forest.
+ * Return: combine and dedup result indices from all trees, sorted by the given comparison function.
+ *         Results are indices into the training feature-array (since the caller/wrapper might have
+ *         different things they want to do with this).
+ */
+rownum_type *query_forest_dedup_results_sorted(const RandomBinaryForest *forest, feature_type *point,
+        feature_type *ref_points, const size_t point_dimension, size_t *count,
+        int (*compare)(const void *, const void *)) {
+    rownum_type *results = query_forest_dedup_results(forest, point, point_dimension, count);
+    results_comparison_node *results_for_sort = make_comp_nodes(results, *count, ref_points, point, point_dimension);
+    qsort(results_for_sort, *count, sizeof(results_comparison_node), compare);
+    for (size_t i = 0; i < *count; i++) {
+        results[i] = results_for_sort[i].ref_index;
+    }
+    free(results_for_sort);
+    return results;
+}
+
+
+/*
+ * Identical to query_forest_dedup_results_sorted except queries for a batch of points at a time.
+ * So: `points` is now a pointer to multiple points, not a single point.
+ * Returns an array of arrays. Param return: ret_counts array of counts.
+ * Outer array contains num_points results; each result is an array.
+ * The ith of these arrays contains ret_counts[i]-many indices.
+ */
+rownum_type **batch_query_forest_dedup_results_sorted(const RandomBinaryForest *forest, feature_type *points,
+        feature_type *ref_points, const size_t point_dimension, size_t num_points,
+        const int (*compare)(const void *, const void *),
+// Note: the params here are actually all const (except ret_counts)
+// but I can't declare them const because of make_comp_nodes.
+        size_t **ret_counts) {
+    assert(point_dimension == forest->config->num_features);
+    rownum_type **all_results = malloc(sizeof(rownum_type*) * num_points);
+    *ret_counts = malloc(sizeof(size_t) * num_points);
     #pragma omp parallel for
     for (size_t i = 0; i < num_points; i++) {
-        all_results[i] = query_forest_dedup_results(forest, &(points[i * point_dimension]), point_dimension, &((*counts)[i]));
+        all_results[i] = query_forest_dedup_results_sorted(forest, &(points[i * point_dimension]), ref_points, point_dimension, &((*ret_counts)[i]), compare);
     }
     return all_results;
 }
