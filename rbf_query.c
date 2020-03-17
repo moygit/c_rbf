@@ -187,8 +187,11 @@ rownum_type **batch_query_forest_dedup_results_sorted(const RandomBinaryForest *
 // but I can't declare them const because of make_comp_nodes.
         size_t **ret_counts) {
     assert(point_dimension == forest->config->num_features);
-    rownum_type **all_results = malloc(sizeof(rownum_type*) * num_points);
-    *ret_counts = malloc(sizeof(size_t) * num_points);
+    rownum_type **all_results = (rownum_type **) malloc(sizeof(rownum_type*) * num_points);
+    *ret_counts = (size_t *) malloc(sizeof(size_t) * num_points);
+    if (!all_results || !ret_counts) {
+        die_alloc_err("batch_query_forest_dedup_results_sorted", "all_results or ret_counts failed");
+    }
     #pragma omp parallel for
     for (size_t i = 0; i < num_points; i++) {
         all_results[i] = query_forest_dedup_results_sorted(forest, &(points[i * point_dimension]), ref_points, point_dimension, &((*ret_counts)[i]), compare);
