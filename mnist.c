@@ -28,29 +28,6 @@ feature_type *read_file(char *filename, size_t *byte_count) {
 }
 
 
-// given 
-label_type *get_result_labels(RbfResults *results, size_t count, size_t num_trees, label_type *train_labels) {
-    label_type *labels = malloc(sizeof(label_type) * count);
-    size_t j = 0;
-    for (size_t i = 0; i < num_trees; i++) {
-        size_t tree_count = results->tree_result_counts[i];
-        for (size_t tree_i = 0; tree_i < tree_count; tree_i++) {
-            labels[j] = train_labels[results->tree_results[i][tree_i]];
-            j += 1;
-        }
-    }
-    return labels;
-}
-
-void print_feature_array(feature_type *labels, size_t count) {
-    printf("array: ");
-    for (size_t i = 0; i < count; i++) {
-        printf("%d,", labels[i]);
-    }
-    printf("\n");
-}
-
-
 // Of the given array of labels (upto index `count`), which one has the max frequency?
 label_type get_winner(label_type *labels, size_t count) {
     // get frequency of each label:
@@ -72,6 +49,40 @@ label_type get_winner(label_type *labels, size_t count) {
 }
 
 
+/*
+ * Given results from multiple trees, merge them into a single array.
+ */
+rownum_type *merge_indices(RbfResults *results, size_t num_trees) {
+    rownum_type *indices = malloc(sizeof(rownum_type) * results->total_count);
+    size_t j = 0;
+    for (size_t i = 0; i < num_trees; i++) {
+        size_t tree_count = results->tree_result_counts[i];
+        for (size_t tree_i = 0; tree_i < tree_count; tree_i++) {
+            indices[j] = results->tree_results[i][tree_i];
+            j += 1;
+        }
+    }
+    return indices;
+}
+
+
+/*
+ * Given an array of row-indices, return the corresponding labels.
+ */
+label_type *get_labels(rownum_type *indices, size_t count, label_type *train_labels) {
+    label_type *labels = malloc(sizeof(label_type) * count);
+    for (size_t i = 0; i < count; i++) {
+        labels[i] = train_labels[indices[i]];
+    }
+    return labels;
+}
+
+
+/**
+ * Given a forest and a set of test points, evaluate each point by plurality,
+ * i.e. find the argmax label among all neighbors returned by all trees, with no deduping:
+ * if a point is returned by n trees then it gets counted n times.
+ */
 void eval_plurality(RandomBinaryForest *forest, RbfConfig cfg, feature_type *test_data, label_type *train_labels,
         label_type *test_labels, size_t num_test_rows, size_t num_features) {
     print_time("started eval_plurality");
@@ -81,7 +92,8 @@ void eval_plurality(RandomBinaryForest *forest, RbfConfig cfg, feature_type *tes
     #pragma omp parallel for
     for (size_t i = 0; i < num_test_rows; i++) {
         RbfResults results = rbf_results[i];
-        label_type *labels = get_result_labels(&results, results.total_count, cfg.num_trees, train_labels);
+        rownum_type *merged_indices = merge_indices(&results, cfg.num_trees);
+        label_type *labels = get_labels(merged_indices, results.total_count, train_labels);
         matches[i] = (get_winner(labels, results.total_count) == test_labels[i]);
     }
 
@@ -101,6 +113,10 @@ size_t min(size_t i, size_t j) {
     return j;
 }
 
+/**
+ * Given a forest and a set of test points, evaluate each point based on the nearest
+ * `num_neighbors` neighbors by L2 distance.
+ */
 void eval_deduped_l2(RandomBinaryForest *forest, RbfConfig cfg, size_t num_neighbors,
                      feature_type *train_data, feature_type *test_data, label_type *train_labels, label_type *test_labels,
                      size_t num_test_rows, size_t num_features) {
@@ -110,7 +126,7 @@ void eval_deduped_l2(RandomBinaryForest *forest, RbfConfig cfg, size_t num_neigh
     rownum_type **results = batch_query_forest_dedup_results_sorted(forest, train_data,
         test_data, num_features, num_test_rows, l2_compare, &counts);
 
-    // for each query row, get labels of first `num_neighbors` results for that row; then get winner
+    // for each query row, get labels of first `num_neighbors` results for that row, then get winner
     int match_count = 0;
     for (size_t i = 0; i < num_test_rows; i++) {
         label_type *labels = malloc(sizeof(label_type) * counts[i]);
