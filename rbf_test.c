@@ -302,7 +302,7 @@ bool test_query_sorted() {
     // when
     RbfResults *batch_results = batch_query_forest_all_results(&forest, two_points, num_features, num_points);
     size_t **counts;
-    rownum_type **results = batch_query_forest_dedup_results_sorted(&forest, two_points, ref_points, num_features, num_points, l2_compare, counts);
+    rownum_type **results = batch_query_forest_dedup_results_sorted(&forest, ref_points, two_points, num_features, num_points, l2_compare, counts);
 
     // then
     return ((*counts)[0] == 4)

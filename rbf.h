@@ -79,8 +79,8 @@ rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const 
 rownum_type **batch_query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *points,
         const size_t point_dimension, const size_t num_points, size_t **counts);
 
-rownum_type **batch_query_forest_dedup_results_sorted(const RandomBinaryForest *forest, feature_type *points,
-        feature_type *ref_points, const size_t point_dimension, size_t num_points,
+rownum_type **batch_query_forest_dedup_results_sorted(const RandomBinaryForest *forest, feature_type *ref_points,
+        feature_type *points, const size_t point_dimension, size_t num_points,
         const int (*compare)(const void *, const void *),
         size_t **ret_counts);
 

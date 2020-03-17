@@ -180,8 +180,8 @@ rownum_type *query_forest_dedup_results_sorted(const RandomBinaryForest *forest,
  * Outer array contains num_points results; each result is an array.
  * The ith of these arrays contains ret_counts[i]-many indices.
  */
-rownum_type **batch_query_forest_dedup_results_sorted(const RandomBinaryForest *forest, feature_type *points,
-        feature_type *ref_points, const size_t point_dimension, size_t num_points,
+rownum_type **batch_query_forest_dedup_results_sorted(const RandomBinaryForest *forest, feature_type *ref_points,
+        feature_type *points, const size_t point_dimension, size_t num_points,
         const int (*compare)(const void *, const void *),
 // Note: the params here are actually all const (except ret_counts)
 // but I can't declare them const because of make_comp_nodes.
