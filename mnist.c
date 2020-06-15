@@ -6,7 +6,7 @@
 #include "_rbf_train.h"
 #include "_rbf_query.h"
 
-// gcc -Wall -o rbf main.c rbf_train.o -fopenmp
+// gcc -fopenmp -lapr-1 -Wall -o mnist mnist.c rbf_train.o rbf_query.o rbf_utils.o
 
 #define NUM_LABELS 10
 
@@ -54,12 +54,12 @@ label_type get_winner(label_type *labels, size_t count) {
  */
 rownum_type *merge_indices(RbfResults *results, size_t num_trees) {
     rownum_type *indices = malloc(sizeof(rownum_type) * results->total_count);
-    size_t j = 0;
-    for (size_t i = 0; i < num_trees; i++) {
-        size_t tree_count = results->tree_result_counts[i];
-        for (size_t tree_i = 0; tree_i < tree_count; tree_i++) {
-            indices[j] = results->tree_results[i][tree_i];
-            j += 1;
+    size_t all_indices_pos = 0;
+    for (size_t tree_num = 0; tree_num < num_trees; tree_num++) {
+        size_t this_tree_results_count = results->tree_result_counts[tree_num];
+        for (size_t this_tree_result_i = 0; this_tree_result_i < this_tree_results_count; this_tree_result_i++) {
+            indices[all_indices_pos] = results->tree_results[tree_num][this_tree_result_i];
+            all_indices_pos += 1;
         }
     }
     return indices;
