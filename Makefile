@@ -25,9 +25,6 @@ doc:
 
 # Python tests:
 
-basic_py_test: librbf.so
-	./test_rbf.py
-
 wrapped_py_test: librbf.so
 	./test_wrapped_rbf.py
 
