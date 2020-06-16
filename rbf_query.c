@@ -1,5 +1,5 @@
-#include <apr_pools.h>
-#include <apr_tables.h>
+#define _GNU_SOURCE     /* Expose declaration of tdestroy() */
+#include <search.h>
 #include <assert.h>
 #include "rbf.h"
 #include "_rbf_utils.h"
@@ -87,30 +87,38 @@ RbfResults *batch_query_forest_all_results(const RandomBinaryForest *forest, con
  * Return: combine and dedup result indices from all trees. Results are indices into the training
  *         feature-array (since the caller/wrapper might have different things they want to do with this).
  */
-rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *point, const size_t point_dimension, size_t *count) {
-    char local_true = 1;
-    apr_pool_t *thread_memory_pool;
-    apr_pool_create_unmanaged(&thread_memory_pool);
+static int compare(const void *pa, const void *pb) {
+   if (*(rownum_type *) pa < *(rownum_type *) pb)
+       return -1;
+   if (*(rownum_type *) pa > *(rownum_type *) pb)
+       return 1;
+   return 0;
+}
 
+rownum_type *query_forest_dedup_results(const RandomBinaryForest *forest, const feature_type *point, const size_t point_dimension, size_t *count) {
     // get all results, and accordingly allocate space for tracker and return
     RbfResults *all_results = query_forest_all_results(forest, point, point_dimension);
-    apr_table_t *results_seen = apr_table_make(thread_memory_pool, all_results->total_count);
     // TODO: speed/memory tradeoff here: allocating too much space right now
     rownum_type *deduped_results = malloc(sizeof(rownum_type) * all_results->total_count);
 
+    void *results_seen = NULL;
+    rownum_type *result_pos;
     *count = 0;
     for (size_t i = 0; i < forest->config->num_trees; i++) {
         for (size_t j = 0; j < all_results->tree_result_counts[i]; j++) {
-            rownum_type *result_pos = &(all_results->tree_results[i][j]);
-            if (!apr_table_get(results_seen, (char *) result_pos)) {
+            result_pos = &(all_results->tree_results[i][j]);
+            if (!tfind(result_pos, &results_seen, compare)) {
                 deduped_results[*count] = *result_pos;
-                apr_table_set(results_seen, (char *) result_pos, &local_true);
+                tsearch(result_pos, &results_seen, compare);    // insert
                 *count += 1;
             }
         }
     }
 
-    apr_pool_destroy(thread_memory_pool);
+    // TODO: No idea why this fails!
+    //if (results_seen) {
+    //    tdestroy(results_seen, free);
+    //}
     return deduped_results;
 }
 
