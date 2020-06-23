@@ -145,6 +145,7 @@ int main() {
     srand(2719);
     rbf_init();
 
+    // read training data
     size_t bytes;
     feature_type *pre_train_data = read_file("fashion/train_images.bin", &bytes);
     size_t train_bytes = bytes;
@@ -152,6 +153,7 @@ int main() {
     size_t num_rows = bytes;
     size_t num_features = train_bytes / bytes;
 
+    // build RBF
     RbfConfig cfg = {256, // num_trees
                      20, // tree_depth
                       4, // leaf_size
@@ -161,15 +163,17 @@ int main() {
 
     feature_type *train_data = transpose(pre_train_data, cfg.num_rows, cfg.num_features);
     free(pre_train_data);
-    feature_type *test_data = read_file("fashion/test_images.bin", &bytes);
-    label_type *test_labels = (label_type *) read_file("fashion/test_labels.bin", &bytes);
-    size_t num_test_rows = bytes;
 
     print_time("started training");
     RandomBinaryForest *forest = train_forest(train_data, &cfg);
     print_time("finished training");
 
+    // read test data
+    feature_type *test_data = read_file("fashion/test_images.bin", &bytes);
+    label_type *test_labels = (label_type *) read_file("fashion/test_labels.bin", &bytes);
+    size_t num_test_rows = bytes;
 
+    // evaluate
     eval_plurality(forest, cfg, test_data, train_labels, test_labels, num_test_rows, num_features);
     eval_deduped_l2(forest, cfg, 5, train_data, test_data, train_labels, test_labels, num_test_rows, cfg.num_features);
 }

@@ -8,6 +8,11 @@
 // A "point" is a feature-array. Search for one point in this tree.
 void query_tree(const RandomBinaryForest *forest, const size_t tree_num, const feature_type *point,
                 rownum_type **tree_results, size_t *tree_result_counts) {
+// TODO (BUG): for my original application I wanted the single nearest neighbor.
+// If we want k > 1 neighbors then for now we restrict leaf-size and get the k nearest neighbors
+// found by the whole forest. Need to fix this to return k neighbors as follows:
+// At each node, also store the start and end indices of points stored under it.
+// Then, when querying, if the child has fewer points than we want, then don't recurse.
     size_t array_pos = 0;
     rownum_type first = forest->trees[tree_num].tree_first[array_pos];
 	// the condition checks if it's an internal node (== 0) or a leaf (== -1):
