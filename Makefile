@@ -1,5 +1,5 @@
-CFLAGS=-Wall -Werror -fpic -fopenmp -O3 -march=native -I/usr/include/apr-1
-LDFLAGS=-fopenmp -lapr-1
+CFLAGS=-Wall -Werror -fpic -fopenmp -O3 -march=native `pkgconf --cflags apr-1`
+LDFLAGS=-fopenmp `pkgconf --libs apr-1`
 TEST_LIB_DIRS=-L.
 TEST_LIBS=-lcheck -lrbf
 
