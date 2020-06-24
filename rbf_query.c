@@ -1,4 +1,7 @@
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE     /* Expose declaration of tdestroy() */
+#endif
+
 #include <search.h>
 #include <assert.h>
 #include "rbf.h"
