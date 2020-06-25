@@ -215,7 +215,6 @@ bool test_query() {
     //   right child:
     //     tree_first[2]: (leaf) 0 ("aaaa") (actually HIGH_BIT_1 ^ 0)
     //     tree_second[2]: (leaf) 1         (actually HIGH_BIT_1 ^ 1)
-    rbf_init();
 
     rownum_type row_index[] = {0, 1};
     int num_rows = 2;
@@ -275,7 +274,6 @@ bool test_query_sorted() {
     //   right child:
     //     tree_first[2]: (leaf) 3          (actually HIGH_BIT_1 ^ 3)
     //     tree_second[2]: (leaf) 7         (actually HIGH_BIT_1 ^ 7)
-    rbf_init();
 
     rownum_type row_index[] = {0, 1, 2, 3, 4, 5, 6};
     feature_type ref_points[] = {1, 2, 0, 9, 8, 6, 5};

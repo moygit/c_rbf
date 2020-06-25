@@ -1,5 +1,5 @@
-CFLAGS=-Wall -Werror -fpic -fopenmp -O3 -march=native `pkgconf --cflags apr-1`
-LDFLAGS=-fopenmp `pkgconf --libs apr-1`
+CFLAGS=-Wall -Werror -fpic -fopenmp -O3 -march=native
+LDFLAGS=-fopenmp
 TEST_LIB_DIRS=-L.
 TEST_LIBS=-lcheck -lrbf
 

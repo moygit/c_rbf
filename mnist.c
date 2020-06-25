@@ -6,7 +6,7 @@
 #include "_rbf_train.h"
 #include "_rbf_query.h"
 
-// gcc -fopenmp -lapr-1 -Wall -o mnist mnist.c rbf_train.o rbf_query.o rbf_utils.o
+// gcc -fopenmp -Wall -o mnist mnist.c rbf_train.o rbf_query.o rbf_utils.o
 
 #define NUM_LABELS 10
 
@@ -143,7 +143,6 @@ void eval_deduped_l2(RandomBinaryForest *forest, RbfConfig cfg, size_t num_neigh
 
 int main() {
     srand(2719);
-    rbf_init();
 
     // read training data
     size_t bytes;

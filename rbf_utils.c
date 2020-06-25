@@ -1,16 +1,9 @@
-#include <apr_pools.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include "rbf.h"
 #include "_rbf_utils.h"
-
-
-// Initial setup (memory etc).
-void rbf_init() {
-    apr_initialize();
-}
 
 
 // Call when *alloc returns null

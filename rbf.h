@@ -65,8 +65,6 @@ typedef struct {
 } RbfResults;
 
 
-void rbf_init();
-
 RandomBinaryForest *train_forest(feature_type *feature_array, RbfConfig *config);
 
 RbfResults *query_forest_all_results(const RandomBinaryForest *forest, const feature_type *point,
